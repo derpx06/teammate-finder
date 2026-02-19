@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { X, User, Code, Calendar, Heart, Github } from 'lucide-react';
+import { X, User, Code, Calendar, Heart, Github, Loader2, Sparkles } from 'lucide-react';
 import Step1Skills from '../Onboarding/Step1Skills';
 import Step2GitHub from '../Onboarding/Step2GitHub';
 import Step3Availability from '../Onboarding/Step3Availability';
 import Step4Interests from '../Onboarding/Step4Interests';
+import { API_BASE_URL } from '../../config/api';
 
 
 
@@ -11,6 +12,8 @@ const EditProfileModal = ({ user, onClose, onSave, initialTab = 'general' }) => 
     const [activeTab, setActiveTab] = useState(initialTab);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [improvingBio, setImprovingBio] = useState(false);
+    const [improveBioError, setImproveBioError] = useState('');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -52,6 +55,44 @@ const EditProfileModal = ({ user, onClose, onSave, initialTab = 'general' }) => 
             setError(saveError.message || 'Failed to save profile changes');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleAutoImproveBio = async () => {
+        const bio = String(formData.bio || '').trim();
+        if (!bio) {
+            setImproveBioError('Add your bio first, then use Auto Improve.');
+            return;
+        }
+
+        setImprovingBio(true);
+        setImproveBioError('');
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/api/user/profile/improve-bio`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    bio: formData.bio,
+                    role: formData.role,
+                    location: formData.location,
+                    skills: formData.skills || [],
+                    interests: formData.interests || [],
+                }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to improve bio');
+            }
+
+            updateFormData('bio', String(data.bio || '').trim());
+        } catch (improveError) {
+            setImproveBioError(improveError.message || 'Failed to improve bio');
+        } finally {
+            setImprovingBio(false);
         }
     };
 
@@ -108,14 +149,44 @@ const EditProfileModal = ({ user, onClose, onSave, initialTab = 'general' }) => 
                             />
                         </div>
                         <div>
-                            <label className="form-label">Profile Description</label>
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                                <label className="form-label mb-0">Profile Description</label>
+                                <button
+                                    type="button"
+                                    onClick={handleAutoImproveBio}
+                                    disabled={improvingBio}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                    {improvingBio ? (
+                                        <>
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            Improving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="h-3.5 w-3.5" />
+                                            Auto Improve
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                             <textarea
                                 rows={4}
                                 value={formData.bio || ''}
-                                onChange={e => updateFormData('bio', e.target.value)}
+                                onChange={e => {
+                                    updateFormData('bio', e.target.value);
+                                    if (improveBioError) setImproveBioError('');
+                                }}
                                 placeholder="Write a short description about your profile, skills, and what you are looking for."
                                 className="field-textarea"
                             />
+                            {improveBioError ? (
+                                <p className="mt-2 text-xs text-red-600">{improveBioError}</p>
+                            ) : (
+                                <p className="mt-2 text-xs text-gray-500">
+                                    Auto Improve rewrites your bio to sound clearer and more professional.
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="form-label">Location</label>

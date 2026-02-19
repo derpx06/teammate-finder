@@ -1,6 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ExternalLink, Link2, Loader2, PencilLine, Plus, Save, SlidersHorizontal, Trash2, UserPlus, X } from 'lucide-react';
+import {
+    Activity,
+    AlertCircle,
+    BarChart3,
+    ExternalLink,
+    Eye,
+    GitFork,
+    Github,
+    Link2,
+    Loader2,
+    PencilLine,
+    Plus,
+    Save,
+    SlidersHorizontal,
+    Star,
+    Trash2,
+    UserPlus,
+    Users,
+    X,
+} from 'lucide-react';
 import ProjectHeader from './ProjectHeader';
 import SkillGapHighlight from './SkillGapHighlight';
 import OpenRolesList from './OpenRolesList';
@@ -31,7 +50,17 @@ const toDraftRoadmapPhase = (phase, index) => ({
     durationWeeks: phase?.durationWeeks ?? '',
     deliverables: toCommaSeparatedString(phase?.deliverables),
     owners: toCommaSeparatedString(phase?.owners),
+    progress: Number.isFinite(Number(phase?.progress)) ? Math.max(0, Math.min(100, Math.round(Number(phase.progress)))) : 0,
 });
+
+const toCompactNumber = (value) => {
+    const numeric = Number(value) || 0;
+    if (numeric >= 1000000) return `${(numeric / 1000000).toFixed(1)}M`;
+    if (numeric >= 1000) return `${(numeric / 1000).toFixed(1)}K`;
+    return String(numeric);
+};
+
+const getTimelineTokenStorageKey = (projectId) => `project_github_token_${projectId}`;
 
 const ProjectDetails = () => {
     const { id } = useParams();
@@ -43,10 +72,6 @@ const ProjectDetails = () => {
     const [inviting, setInviting] = useState(false);
     const [inviteError, setInviteError] = useState('');
     const [inviteSuccess, setInviteSuccess] = useState('');
-    const [progressDraft, setProgressDraft] = useState(0);
-    const [progressSaving, setProgressSaving] = useState(false);
-    const [progressError, setProgressError] = useState('');
-    const [progressSuccess, setProgressSuccess] = useState('');
     const [newRole, setNewRole] = useState({
         title: '',
         skills: '',
@@ -78,9 +103,45 @@ const ProjectDetails = () => {
     const [sourceCodeSaving, setSourceCodeSaving] = useState(false);
     const [sourceCodeError, setSourceCodeError] = useState('');
     const [sourceCodeSuccess, setSourceCodeSuccess] = useState('');
+    const [starterKitToken, setStarterKitToken] = useState(() => '');
+    const [starterKitRepoName, setStarterKitRepoName] = useState('');
+    const [starterKitVisibility, setStarterKitVisibility] = useState('private');
+    const [starterKitLoading, setStarterKitLoading] = useState(false);
+    const [starterKitError, setStarterKitError] = useState('');
+    const [starterKitSuccess, setStarterKitSuccess] = useState('');
+    const [githubInsights, setGithubInsights] = useState(null);
+    const [githubInsightsLoading, setGithubInsightsLoading] = useState(false);
+    const [githubInsightsError, setGithubInsightsError] = useState('');
     const roadmap = Array.isArray(project?.roadmap) ? project.roadmap : [];
-    const canEditRoadmap = Boolean(project?.isOwner || project?.isMember);
+    const canEditRoadmap = Boolean(project?.isOwner);
     const canEditSourceCode = Boolean(project?.isOwner || project?.isMember);
+    const canViewProjectAnalysis = Boolean(project?.isOwner);
+
+    useEffect(() => {
+        if (!id) return;
+        try {
+            const stored = sessionStorage.getItem(getTimelineTokenStorageKey(id)) || '';
+            if (stored) {
+                setStarterKitToken(stored);
+            }
+        } catch (_error) {
+            // Ignore storage errors and continue.
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (!id) return;
+        try {
+            const key = getTimelineTokenStorageKey(id);
+            if (starterKitToken) {
+                sessionStorage.setItem(key, starterKitToken);
+            } else {
+                sessionStorage.removeItem(key);
+            }
+        } catch (_error) {
+            // Ignore storage errors and continue.
+        }
+    }, [id, starterKitToken]);
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -120,12 +181,6 @@ const ProjectDetails = () => {
     }, [id]);
 
     useEffect(() => {
-        if (project && Number.isFinite(Number(project.progress))) {
-            setProgressDraft(Number(project.progress));
-        }
-    }, [project]);
-
-    useEffect(() => {
         const incomingRoadmap = Array.isArray(project?.roadmap) ? project.roadmap : [];
         setRoadmapDraft(incomingRoadmap.map((phase, index) => toDraftRoadmapPhase(phase, index)));
     }, [project]);
@@ -133,6 +188,43 @@ const ProjectDetails = () => {
     useEffect(() => {
         setSourceCodeDraft(String(project?.sourceCodeUrl || ''));
     }, [project]);
+
+    useEffect(() => {
+        const fetchGitHubInsights = async () => {
+            if (!id || !project?.sourceCodeUrl) {
+                setGithubInsights(null);
+                setGithubInsightsError('');
+                return;
+            }
+
+            setGithubInsightsLoading(true);
+            setGithubInsightsError('');
+            try {
+                const token = localStorage.getItem('authToken');
+                const githubToken = String(starterKitToken || '').trim();
+                const query = githubToken
+                    ? `?githubToken=${encodeURIComponent(githubToken)}`
+                    : '';
+                const response = await fetch(`${API_BASE_URL}/api/project/${id}/github/insights${query}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch GitHub insights');
+                }
+                setGithubInsights(data);
+            } catch (fetchError) {
+                setGithubInsights(null);
+                setGithubInsightsError(fetchError.message || 'Failed to fetch GitHub insights');
+            } finally {
+                setGithubInsightsLoading(false);
+            }
+        };
+
+        fetchGitHubInsights();
+    }, [id, project?.sourceCodeUrl, starterKitToken]);
 
     useEffect(() => {
         const fetchPendingApplications = async () => {
@@ -208,36 +300,6 @@ const ProjectDetails = () => {
             setInviteError(actionError.message || 'Failed to send invitation');
         } finally {
             setInviting(false);
-        }
-    };
-
-    const handleSaveProgress = async () => {
-        setProgressError('');
-        setProgressSuccess('');
-        setProgressSaving(true);
-
-        try {
-            const token = localStorage.getItem('authToken');
-            const response = await fetch(`${API_BASE_URL}/api/project/${id}/progress`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ progress: Number(progressDraft) }),
-            });
-
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to update progress');
-            }
-
-            setProject(data.project || project);
-            setProgressSuccess('Progress updated.');
-        } catch (actionError) {
-            setProgressError(actionError.message || 'Failed to update progress');
-        } finally {
-            setProgressSaving(false);
         }
     };
 
@@ -348,6 +410,7 @@ const ProjectDetails = () => {
                 durationWeeks: '',
                 deliverables: '',
                 owners: '',
+                progress: 0,
             },
         ]);
     };
@@ -366,6 +429,7 @@ const ProjectDetails = () => {
                 durationWeeks: '',
                 deliverables: '',
                 owners: '',
+                progress: 0,
             },
         ]);
     };
@@ -409,6 +473,7 @@ const ProjectDetails = () => {
                     .split(',')
                     .map((item) => item.trim())
                     .filter(Boolean),
+                progress: Math.max(0, Math.min(100, Math.round(Number(phase?.progress) || 0))),
             }))
             .filter((phase) => phase.title || phase.objective);
 
@@ -468,6 +533,58 @@ const ProjectDetails = () => {
         }
     };
 
+    const handleCreateStarterKit = async () => {
+        setStarterKitError('');
+        setStarterKitSuccess('');
+
+        const normalizedToken = String(starterKitToken || '').trim();
+        if (!normalizedToken) {
+            setStarterKitError('GitHub token is required to create a repository automatically.');
+            return;
+        }
+
+        setStarterKitLoading(true);
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/api/project/${id}/github/starter-kit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    githubToken: normalizedToken,
+                    repoName: starterKitRepoName,
+                    visibility: starterKitVisibility,
+                    createIssues: true,
+                    createBoilerplate: true,
+                }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to create GitHub starter kit');
+            }
+
+            if (data?.project) {
+                setProject(data.project);
+            }
+            setStarterKitSuccess(
+                `Starter kit ready: ${data?.repo?.fullName || 'GitHub repo'} with ${Array.isArray(data?.issuesCreated) ? data.issuesCreated.length : 0} starter issues.`
+            );
+            if (Array.isArray(data?.warnings) && data.warnings.length > 0) {
+                const preview = data.warnings.slice(0, 2).join(' | ');
+                setStarterKitSuccess(
+                    `Starter kit created with warnings: ${preview}${data.warnings.length > 2 ? ' ...' : ''}`
+                );
+            }
+            setSourceCodeSuccess('Source code URL updated from generated GitHub repository.');
+        } catch (actionError) {
+            setStarterKitError(actionError.message || 'Failed to create GitHub starter kit');
+        } finally {
+            setStarterKitLoading(false);
+        }
+    };
+
     const handleJumpToRoadmap = () => {
         const roadmapSection = document.getElementById('project-roadmap');
         if (!roadmapSection) return;
@@ -523,6 +640,11 @@ const ProjectDetails = () => {
     };
 
     const handleAnalyzeProject = async () => {
+        if (!project?.isOwner) {
+            setAnalysisError('Only the project owner can analyze this project.');
+            return;
+        }
+
         setAnalysisError('');
         setAnalysisNotice('');
         setAnalyzingProject(true);
@@ -606,6 +728,11 @@ const ProjectDetails = () => {
     };
 
     const handleOpenPositionsFromAnalysis = async () => {
+        if (!project?.isOwner) {
+            setAnalysisError('Only the project owner can open suggested positions.');
+            return;
+        }
+
         setAnalysisError('');
         setAnalysisNotice('');
         setOpeningPositions(true);
@@ -681,21 +808,24 @@ const ProjectDetails = () => {
                         }
                         onReviewGaps={handleAnalyzeProject}
                         reviewing={analyzingProject}
+                        showReviewAction={canViewProjectAnalysis}
                     />
 
-                    <div id="project-analysis">
-                    <ProjectAnalysisPanel
-                        analysis={analysis}
-                        analyzing={analyzingProject}
-                        onAnalyze={handleAnalyzeProject}
-                        onOpenPositions={handleOpenPositionsFromAnalysis}
-                        openingPositions={openingPositions}
-                        isOwner={Boolean(project?.isOwner)}
-                        invitingByUserId={invitingUserMap}
-                        onInviteUser={handleInviteUserById}
-                        notifyMessage={analysisNotice}
-                    />
-                    </div>
+                    {canViewProjectAnalysis ? (
+                        <div id="project-analysis">
+                            <ProjectAnalysisPanel
+                                analysis={analysis}
+                                analyzing={analyzingProject}
+                                onAnalyze={handleAnalyzeProject}
+                                onOpenPositions={handleOpenPositionsFromAnalysis}
+                                openingPositions={openingPositions}
+                                isOwner={Boolean(project?.isOwner)}
+                                invitingByUserId={invitingUserMap}
+                                onInviteUser={handleInviteUserById}
+                                notifyMessage={analysisNotice}
+                            />
+                        </div>
+                    ) : null}
 
                     <div className="surface-card rounded-2xl p-8 mb-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-4">About the Project</h3>
@@ -712,7 +842,7 @@ const ProjectDetails = () => {
                             <div>
                                 <h3 className="text-xl font-bold text-gray-900">Project Roadmap</h3>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    Shared execution plan. Team members can collaboratively update this timeline.
+                                    Owner-managed execution plan. Overall project progress is auto-calculated from phase progress.
                                 </p>
                             </div>
 
@@ -831,6 +961,24 @@ const ProjectDetails = () => {
                                                 />
                                             </div>
 
+                                            <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                                                <div className="flex items-center justify-between text-xs mb-2">
+                                                    <span className="font-semibold text-blue-800">Phase Progress</span>
+                                                    <span className="font-semibold text-blue-900">
+                                                        {Math.max(0, Math.min(100, Math.round(Number(phase.progress) || 0)))}%
+                                                    </span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="100"
+                                                    step="1"
+                                                    value={Math.max(0, Math.min(100, Math.round(Number(phase.progress) || 0)))}
+                                                    onChange={(event) => handleRoadmapFieldChange(index, 'progress', Number(event.target.value))}
+                                                    className="w-full accent-blue-600"
+                                                />
+                                            </div>
+
                                             <input
                                                 type="text"
                                                 value={phase.deliverables}
@@ -860,7 +1008,7 @@ const ProjectDetails = () => {
                                         Add Phase
                                     </button>
                                     <span className="text-xs text-gray-500">
-                                        Any owner or team member can edit this roadmap.
+                                        Only the project owner can edit roadmap and phase progress.
                                     </span>
                                 </div>
                             </div>
@@ -893,6 +1041,21 @@ const ProjectDetails = () => {
                                             {phase.objective ? (
                                                 <p className="text-sm text-gray-600 mb-3">{phase.objective}</p>
                                             ) : null}
+
+                                            <div className="mb-3">
+                                                <div className="flex items-center justify-between text-[11px] text-gray-600 mb-1">
+                                                    <span>Phase Progress</span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {Math.max(0, Math.min(100, Math.round(Number(phase.progress) || 0)))}%
+                                                    </span>
+                                                </div>
+                                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-blue-500 rounded-full"
+                                                        style={{ width: `${Math.max(0, Math.min(100, Math.round(Number(phase.progress) || 0)))}%` }}
+                                                    />
+                                                </div>
+                                            </div>
 
                                             {Array.isArray(phase.deliverables) && phase.deliverables.length > 0 ? (
                                                 <div className="mb-2">
@@ -1016,7 +1179,238 @@ const ProjectDetails = () => {
                                         {sourceCodeSuccess}
                                     </div>
                                 ) : null}
+
+                                {project.isOwner ? (
+                                    <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 space-y-2">
+                                        <div className="flex items-center gap-2 text-indigo-900">
+                                            <Github className="w-4 h-4" />
+                                            <p className="text-xs font-semibold uppercase tracking-wide">
+                                                One-Click Starter Kit
+                                            </p>
+                                        </div>
+                                        <p className="text-xs text-indigo-800">
+                                            Auto-creates a GitHub repo with README, boilerplate files, labels, and starter issues/tasks.
+                                        </p>
+                                        <input
+                                            type="password"
+                                            value={starterKitToken}
+                                            onChange={(event) => setStarterKitToken(event.target.value)}
+                                            placeholder="GitHub token (repo scope)"
+                                            className="mini-input"
+                                        />
+                                        <p className="text-[11px] text-indigo-700">
+                                            Token is also used to load private repository insights.
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <input
+                                                type="text"
+                                                value={starterKitRepoName}
+                                                onChange={(event) => setStarterKitRepoName(event.target.value)}
+                                                placeholder="Repo name (optional)"
+                                                className="mini-input"
+                                            />
+                                            <select
+                                                value={starterKitVisibility}
+                                                onChange={(event) => setStarterKitVisibility(event.target.value)}
+                                                className="mini-input"
+                                            >
+                                                <option value="private">Private Repo</option>
+                                                <option value="public">Public Repo</option>
+                                            </select>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleCreateStarterKit}
+                                            disabled={starterKitLoading}
+                                            className="btn-primary w-full text-xs py-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                            {starterKitLoading ? 'Creating Starter Kit...' : 'Generate GitHub Starter Kit'}
+                                        </button>
+                                        {starterKitError ? (
+                                            <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md p-2">
+                                                {starterKitError}
+                                            </div>
+                                        ) : null}
+                                        {starterKitSuccess ? (
+                                            <div className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-md p-2">
+                                                {starterKitSuccess}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                ) : null}
                             </div>
+                        ) : null}
+                    </div>
+
+                    <div className="surface-card rounded-2xl p-6">
+                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-blue-600" />
+                            GitHub Insights
+                        </h3>
+
+                        {githubInsightsLoading ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Loading repository insights...
+                            </div>
+                        ) : null}
+
+                        {!githubInsightsLoading && githubInsightsError ? (
+                            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-md p-2 inline-flex items-center gap-2">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                {githubInsightsError}
+                            </div>
+                        ) : null}
+
+                        {!githubInsightsLoading && !githubInsightsError && githubInsights ? (
+                            <div className="space-y-4">
+                                <a
+                                    href={githubInsights?.repo?.htmlUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-800 hover:underline"
+                                >
+                                    {githubInsights?.repo?.fullName || 'GitHub Repository'}
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                                    <div className="rounded-lg border border-amber-100 bg-amber-50 p-2">
+                                        <div className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+                                            <Star className="w-3.5 h-3.5" />
+                                            Stars
+                                        </div>
+                                        <div className="text-lg font-bold text-amber-900">{toCompactNumber(githubInsights?.stats?.stars)}</div>
+                                    </div>
+                                    <div className="rounded-lg border border-blue-100 bg-blue-50 p-2">
+                                        <div className="inline-flex items-center gap-1 text-blue-700 font-semibold">
+                                            <GitFork className="w-3.5 h-3.5" />
+                                            Forks
+                                        </div>
+                                        <div className="text-lg font-bold text-blue-900">{toCompactNumber(githubInsights?.stats?.forks)}</div>
+                                    </div>
+                                    <div className="rounded-lg border border-violet-100 bg-violet-50 p-2">
+                                        <div className="inline-flex items-center gap-1 text-violet-700 font-semibold">
+                                            <Eye className="w-3.5 h-3.5" />
+                                            Watchers
+                                        </div>
+                                        <div className="text-lg font-bold text-violet-900">{toCompactNumber(githubInsights?.stats?.watchers)}</div>
+                                    </div>
+                                    <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-2">
+                                        <div className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                                            <Users className="w-3.5 h-3.5" />
+                                            Contributors
+                                        </div>
+                                        <div className="text-lg font-bold text-emerald-900">{toCompactNumber(githubInsights?.stats?.contributors)}</div>
+                                    </div>
+                                    <div className="rounded-lg border border-rose-100 bg-rose-50 p-2">
+                                        <div className="inline-flex items-center gap-1 text-rose-700 font-semibold">
+                                            <AlertCircle className="w-3.5 h-3.5" />
+                                            Open Issues
+                                        </div>
+                                        <div className="text-lg font-bold text-rose-900">{toCompactNumber(githubInsights?.stats?.openIssues)}</div>
+                                    </div>
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-2">
+                                        <div className="inline-flex items-center gap-1 text-slate-700 font-semibold">
+                                            <Activity className="w-3.5 h-3.5" />
+                                            Repo Size
+                                        </div>
+                                        <div className="text-lg font-bold text-slate-900">
+                                            {toCompactNumber(githubInsights?.stats?.sizeKb)} KB
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {Array.isArray(githubInsights?.languages) && githubInsights.languages.length > 0 ? (
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                                        <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                                            Language Breakdown
+                                        </p>
+                                        <div className="space-y-2">
+                                            {githubInsights.languages.slice(0, 5).map((entry) => (
+                                                <div key={entry.language}>
+                                                    <div className="flex items-center justify-between text-[11px] text-gray-600 mb-1">
+                                                        <span>{entry.language}</span>
+                                                        <span>{entry.percentage}%</span>
+                                                    </div>
+                                                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                                                            style={{ width: `${Math.max(3, Number(entry.percentage) || 0)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {Array.isArray(githubInsights?.contributors) && githubInsights.contributors.length > 0 ? (
+                                    <div className="rounded-xl border border-gray-100 bg-white p-3">
+                                        <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                                            Top Contributors
+                                        </p>
+                                        <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                                            {githubInsights.contributors.slice(0, 8).map((contributor) => (
+                                                <a
+                                                    key={contributor.id || contributor.login}
+                                                    href={contributor.profileUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center justify-between rounded-lg border border-gray-100 px-2 py-1.5 hover:bg-gray-50"
+                                                >
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <img
+                                                            src={contributor.avatarUrl}
+                                                            alt={contributor.login}
+                                                            className="w-6 h-6 rounded-full border border-gray-200"
+                                                        />
+                                                        <span className="text-xs font-medium text-gray-800 truncate">
+                                                            {contributor.login}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[11px] font-semibold text-blue-700">
+                                                        {contributor.contributions} commits
+                                                    </span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {Array.isArray(githubInsights?.recentActivity) && githubInsights.recentActivity.length > 0 ? (
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                                        <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide inline-flex items-center gap-1">
+                                            <Activity className="w-3.5 h-3.5" />
+                                            Recent Activity
+                                        </p>
+                                        <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                                            {githubInsights.recentActivity.slice(0, 8).map((commit) => (
+                                                <a
+                                                    key={`${commit.sha}-${commit.date}`}
+                                                    href={commit.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="block rounded-md border border-gray-100 bg-white px-2 py-1.5 hover:bg-blue-50 transition-colors"
+                                                >
+                                                    <p className="text-[11px] font-semibold text-gray-900 truncate">
+                                                        {commit.sha} - {commit.message}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-500">
+                                                        {commit.author} • {commit.date ? new Date(commit.date).toLocaleDateString() : 'Unknown date'}
+                                                    </p>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        {!githubInsightsLoading && !githubInsightsError && !githubInsights ? (
+                            <p className="text-sm text-gray-500">
+                                Link a GitHub repository to unlock contributor and project analytics.
+                            </p>
                         ) : null}
                     </div>
 
@@ -1037,44 +1431,9 @@ const ProjectDetails = () => {
                             />
                         </div>
 
-                        {project.isOwner ? (
-                            <div className="space-y-3">
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    step="1"
-                                    value={progressDraft}
-                                    onChange={(event) => setProgressDraft(Number(event.target.value))}
-                                    className="w-full accent-blue-600"
-                                />
-                                <div className="flex items-center justify-between">
-                                    <div className="text-xs text-gray-500">Set to {Math.round(progressDraft)}%</div>
-                                    <button
-                                        type="button"
-                                        onClick={handleSaveProgress}
-                                        disabled={progressSaving}
-                                        className="btn-primary px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
-                                    >
-                                        {progressSaving ? 'Saving...' : 'Save'}
-                                    </button>
-                                </div>
-                                {progressError ? (
-                                    <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md p-2">
-                                        {progressError}
-                                    </div>
-                                ) : null}
-                                {progressSuccess ? (
-                                    <div className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-md p-2">
-                                        {progressSuccess}
-                                    </div>
-                                ) : null}
-                            </div>
-                        ) : (
-                            <div className="text-xs text-gray-500">
-                                Only the project owner can edit progress.
-                            </div>
-                        )}
+                        <div className="text-xs text-gray-500">
+                            Progress is automatically derived from roadmap phase progress.
+                        </div>
                     </div>
 
                     {project.isOwner ? (

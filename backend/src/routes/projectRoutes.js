@@ -7,6 +7,7 @@ const { generateVirtualCtoPlan, enhancePlanWithLlm } = require('../utils/virtual
 const { generateEmbedding, EMBEDDING_DIMENSION } = require('../utils/embeddingUtils');
 const { searchLocalVectors } = require('../utils/vectorUtils');
 const { ensureProjectGroupChat } = require('../utils/projectChatUtils');
+const { toCleanText, improveTextWithGemini } = require('../utils/textEnhancementUtils');
 
 const router = express.Router();
 const VIRTUAL_CTO_CACHE_TTL_MS = Number(process.env.VIRTUAL_CTO_CACHE_TTL_MS) > 0
@@ -119,6 +120,10 @@ function normalizeRoadmapInput(roadmap) {
 
       const normalizedStartWeek = startWeek && endWeek && endWeek < startWeek ? endWeek : startWeek;
       const normalizedEndWeek = startWeek && endWeek && endWeek < startWeek ? startWeek : endWeek;
+      const rawProgress = Number(phase?.progress);
+      const progress = Number.isFinite(rawProgress)
+        ? Math.max(0, Math.min(100, Math.round(rawProgress)))
+        : 0;
 
       return {
         phase: String(phase?.phase || `phase_${index + 1}`).trim(),
@@ -129,10 +134,389 @@ function normalizeRoadmapInput(roadmap) {
         durationWeeks,
         deliverables: normalizeStringArray(phase?.deliverables || []),
         owners: normalizeStringArray(phase?.owners || []),
+        progress,
       };
     })
     .filter(Boolean)
     .slice(0, 12);
+}
+
+function calculateRoadmapProgress(roadmap = []) {
+  const normalizedRoadmap = Array.isArray(roadmap) ? roadmap : [];
+  if (normalizedRoadmap.length === 0) return 0;
+
+  const phaseProgressValues = normalizedRoadmap.map((phase) => {
+    const raw = Number(phase?.progress);
+    if (!Number.isFinite(raw)) return 0;
+    return Math.max(0, Math.min(100, Math.round(raw)));
+  });
+
+  const total = phaseProgressValues.reduce((sum, value) => sum + value, 0);
+  return Math.round(total / normalizedRoadmap.length);
+}
+
+function toSlug(value, fallback = 'project-starter-kit') {
+  const slug = String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return slug || fallback;
+}
+
+function parseGitHubRepoFromUrl(sourceCodeUrl) {
+  const raw = String(sourceCodeUrl || '').trim();
+  if (!raw) return null;
+
+  try {
+    const normalized = raw.startsWith('http://') || raw.startsWith('https://')
+      ? raw
+      : `https://${raw}`;
+    const url = new URL(normalized);
+    if (!/github\.com$/i.test(url.hostname)) return null;
+
+    const segments = url.pathname
+      .replace(/^\//, '')
+      .replace(/\.git$/i, '')
+      .split('/')
+      .filter(Boolean);
+    if (segments.length < 2) return null;
+
+    return {
+      owner: segments[0],
+      repo: segments[1],
+      fullName: `${segments[0]}/${segments[1]}`,
+    };
+  } catch (_error) {
+    return null;
+  }
+}
+
+async function githubApiRequest(path, options = {}) {
+  const {
+    method = 'GET',
+    token = '',
+    body = null,
+    accept = 'application/vnd.github+json',
+  } = options;
+
+  const response = await fetch(`https://api.github.com${path}`, {
+    method,
+    headers: {
+      'User-Agent': 'DevCraft-BroCoders',
+      Accept: accept,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  const payload = contentType.includes('application/json')
+    ? await response.json().catch(() => ({}))
+    : await response.text().catch(() => '');
+
+  if (!response.ok) {
+    const error = new Error(
+      (payload && typeof payload === 'object' ? payload.message : '') || 'GitHub API request failed'
+    );
+    error.statusCode = response.status;
+    throw error;
+  }
+
+  return payload;
+}
+
+function buildStarterReadme(project) {
+  const roadmap = Array.isArray(project?.roadmap) ? project.roadmap : [];
+  const roles = Array.isArray(project?.roles) ? project.roles : [];
+  const techStack = Array.from(
+    new Set(
+      roles
+        .flatMap((role) => (Array.isArray(role?.skills) ? role.skills : []))
+        .map((skill) => String(skill || '').trim())
+        .filter(Boolean)
+    )
+  );
+
+  const roadmapSection = roadmap.length
+    ? roadmap
+        .map((phase, index) => {
+          const title = String(phase?.title || `Phase ${index + 1}`).trim();
+          const objective = String(phase?.objective || '').trim();
+          return `- **${title}**${objective ? `: ${objective}` : ''}`;
+        })
+        .join('\n')
+    : '- MVP Planning\n- Core Development\n- QA + Launch';
+
+  const roleSection = roles.length
+    ? roles
+        .map((role) => {
+          const roleTitle = String(role?.title || 'Contributor').trim();
+          const skills = Array.isArray(role?.skills) ? role.skills.join(', ') : '';
+          return `- **${roleTitle}**${skills ? ` (${skills})` : ''}`;
+        })
+        .join('\n')
+    : '- Product Engineer\n- Frontend Engineer\n- Backend Engineer';
+
+  return `# ${String(project?.title || 'Project').trim()}
+
+${String(project?.description || '').trim()}
+
+## Problem
+Add a concise problem statement here.
+
+## Solution
+Describe your solution and value proposition.
+
+## Tech Stack
+${techStack.length ? techStack.map((item) => `- ${item}`).join('\n') : '- JavaScript\n- React\n- Node.js\n- MongoDB'}
+
+## Team Roles
+${roleSection}
+
+## Roadmap
+${roadmapSection}
+
+## Getting Started
+1. Clone the repo
+2. Follow setup notes in \`frontend/README.md\` and \`backend/README.md\`
+3. Create your first issues and sprint board
+
+## License
+MIT
+`;
+}
+
+function buildStarterFiles(project) {
+  const titleSlug = toSlug(project?.title, 'project');
+  const readme = buildStarterReadme(project);
+
+  const files = [
+    {
+      path: 'README.md',
+      content: readme,
+      message: 'docs: add generated project README',
+    },
+    {
+      path: '.gitignore',
+      content: `node_modules
+dist
+build
+.env
+.env.local
+.DS_Store
+coverage
+.idea
+.vscode
+`,
+      message: 'chore: add gitignore',
+    },
+    {
+      path: 'docs/TECH_STACK.md',
+      content: `# Tech Stack
+
+## Frontend
+- React
+- Tailwind CSS
+
+## Backend
+- Node.js
+- Express
+- MongoDB
+
+## Suggested Integrations
+- Auth provider
+- Analytics
+- CI/CD
+`,
+      message: 'docs: add tech stack guide',
+    },
+    {
+      path: 'frontend/README.md',
+      content: `# Frontend
+
+## Setup
+1. Install dependencies
+2. Start dev server
+
+## Suggested Structure
+- \`src/components\`
+- \`src/pages\`
+- \`src/services\`
+- \`src/styles\`
+`,
+      message: 'docs: add frontend starter notes',
+    },
+    {
+      path: 'backend/README.md',
+      content: `# Backend
+
+## Setup
+1. Install dependencies
+2. Configure env vars
+3. Start API server
+
+## Suggested Structure
+- \`routes/\`
+- \`models/\`
+- \`services/\`
+- \`utils/\`
+`,
+      message: 'docs: add backend starter notes',
+    },
+    {
+      path: 'tasks/BACKLOG.md',
+      content: `# Backlog
+
+## Sprint 0
+- [ ] Project setup and architecture
+- [ ] Define acceptance criteria
+
+## Sprint 1
+- [ ] Build MVP flows
+- [ ] Add core API endpoints
+
+## Sprint 2
+- [ ] QA, polish, and demo prep
+`,
+      message: 'docs: add starter backlog',
+    },
+    {
+      path: `src/${titleSlug}.placeholder`,
+      content: 'Starter placeholder file generated by DevCraft.\n',
+      message: 'chore: add starter placeholder',
+    },
+  ];
+
+  return files;
+}
+
+function buildStarterIssues(project) {
+  const roadmap = Array.isArray(project?.roadmap) ? project.roadmap : [];
+  const roles = Array.isArray(project?.roles) ? project.roles : [];
+  const issues = [
+    {
+      title: 'Define MVP scope and acceptance criteria',
+      body: `Project: ${project?.title || 'Untitled'}\n\nAlign on MVP scope, success metrics, and release checklist.`,
+      labels: ['planning'],
+    },
+    {
+      title: 'Set up frontend and backend starter architecture',
+      body: 'Create base folders, linting, environment setup, and deployment scripts.',
+      labels: ['setup', 'tech-debt'],
+    },
+  ];
+
+  roadmap.slice(0, 5).forEach((phase, index) => {
+    issues.push({
+      title: `Roadmap: ${String(phase?.title || `Phase ${index + 1}`).trim()}`,
+      body: String(phase?.objective || 'Complete this roadmap milestone and capture deliverables.'),
+      labels: ['roadmap'],
+    });
+  });
+
+  roles.slice(0, 5).forEach((role) => {
+    issues.push({
+      title: `Recruit ${String(role?.title || 'Contributor').trim()}`,
+      body: `Required skills: ${Array.isArray(role?.skills) ? role.skills.join(', ') : 'N/A'}`,
+      labels: ['hiring'],
+    });
+  });
+
+  return issues.slice(0, 10);
+}
+
+async function createOrUpdateRepoFile({ owner, repo, path, content, token, message }) {
+  const encodedPath = String(path || '')
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+
+  let existingSha = null;
+  try {
+    const existing = await githubApiRequest(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`,
+      { token }
+    );
+    existingSha = existing?.sha || null;
+  } catch (error) {
+    if (error?.statusCode !== 404) {
+      throw error;
+    }
+  }
+
+  return githubApiRequest(
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`,
+    {
+      method: 'PUT',
+      token,
+      body: {
+        message: message || `chore: add ${path}`,
+        content: Buffer.from(String(content || ''), 'utf8').toString('base64'),
+        ...(existingSha ? { sha: existingSha } : {}),
+      },
+    }
+  );
+}
+
+function wait(ms = 300) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withGitHubRetry(task, options = {}) {
+  const attempts = Number(options?.attempts) > 0 ? Number(options.attempts) : 4;
+  const delayMs = Number(options?.delayMs) > 0 ? Number(options.delayMs) : 350;
+  const retriableStatusCodes = new Set(
+    Array.isArray(options?.retriableStatusCodes) && options.retriableStatusCodes.length > 0
+      ? options.retriableStatusCodes
+      : [404, 409, 429, 500, 502, 503, 504]
+  );
+
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await task();
+    } catch (error) {
+      lastError = error;
+      const shouldRetry =
+        attempt < attempts &&
+        (retriableStatusCodes.has(Number(error?.statusCode)) ||
+          String(error?.message || '').toLowerCase().includes('fetch failed'));
+      if (!shouldRetry) {
+        throw error;
+      }
+      await wait(delayMs * attempt);
+    }
+  }
+
+  throw lastError || new Error('GitHub request failed');
+}
+
+function normalizeContributor(item = {}) {
+  return {
+    id: String(item?.id || ''),
+    login: item?.login || '',
+    avatarUrl: item?.avatar_url || '',
+    profileUrl: item?.html_url || '',
+    contributions: Number(item?.contributions) || 0,
+    type: item?.type || 'User',
+  };
+}
+
+function mapLanguageBreakdown(languageBytes = {}) {
+  const entries = Object.entries(languageBytes || {}).map(([language, bytes]) => ({
+    language,
+    bytes: Number(bytes) || 0,
+  }));
+  const total = entries.reduce((sum, item) => sum + item.bytes, 0);
+  return entries
+    .sort((a, b) => b.bytes - a.bytes)
+    .map((item) => ({
+      ...item,
+      percentage: total > 0 ? Number(((item.bytes / total) * 100).toFixed(1)) : 0,
+    }));
 }
 
 function isProjectMember(project, userId) {
@@ -221,6 +605,7 @@ function buildFallbackRoadmap(project = {}) {
       startWeek,
       endWeek,
       durationWeeks,
+      progress: 0,
       owners: roleOwners.length > 0 ? roleOwners : ['Project Team'],
     };
   });
@@ -748,6 +1133,10 @@ function toProjectListItem(project, currentUserId = null) {
     Array.isArray(project?.roadmap) && project.roadmap.length > 0
       ? project.roadmap
       : buildFallbackRoadmap(project);
+  const derivedProgress = calculateRoadmapProgress(roadmap);
+  const normalizedProgress = roadmap.length > 0
+    ? derivedProgress
+    : Number(project.progress) || 0;
 
   return {
     id: String(project._id),
@@ -757,7 +1146,7 @@ function toProjectListItem(project, currentUserId = null) {
     description: project.description,
     teamSize: Math.max(1, project.teamSize || computedTeamSize),
     dueDate: formatDueDate(project.endDate),
-    progress: project.progress,
+    progress: normalizedProgress,
     type: normalizeProjectType(project.status),
     category: project.category,
     sourceCodeUrl: String(project.sourceCodeUrl || '').trim(),
@@ -857,12 +1246,16 @@ function toProjectDetail(project, currentUser) {
     Array.isArray(project?.roadmap) && project.roadmap.length > 0
       ? project.roadmap
       : buildFallbackRoadmap(project);
+  const derivedProgress = calculateRoadmapProgress(sourceRoadmap);
+  const normalizedProgress = sourceRoadmap.length > 0
+    ? derivedProgress
+    : Number(project.progress) || 0;
 
   return {
     id: String(project._id),
     title: project.title,
     status: project.status,
-    progress: Number(project.progress) || 0,
+    progress: normalizedProgress,
     shortDescription: project.description,
     fullDescription: project.description,
     category: project.category || 'General',
@@ -901,6 +1294,9 @@ function toProjectDetail(project, currentUser) {
             : null,
         deliverables: normalizeStringArray(phase?.deliverables || []),
         owners: normalizeStringArray(phase?.owners || []),
+        progress: Number.isFinite(Number(phase?.progress))
+          ? Math.max(0, Math.min(100, Math.round(Number(phase.progress))))
+          : 0,
       };
     }),
     team: [
@@ -1058,6 +1454,7 @@ router.post('/', protect, async (req, res) => {
       ? roles.map(normalizeRoleInput).filter(Boolean)
       : [];
     const normalizedRoadmap = normalizeRoadmapInput(roadmap);
+    const computedProgress = calculateRoadmapProgress(normalizedRoadmap);
     const normalizedSourceCodeUrl = normalizeSourceCodeUrl(sourceCodeUrl);
 
     if (String(sourceCodeUrl || '').trim() && !normalizedSourceCodeUrl) {
@@ -1078,8 +1475,8 @@ router.post('/', protect, async (req, res) => {
       endDate: endDate || null,
       commitment: String(commitment || '').trim(),
       members: [],
-      status: 'In Progress',
-      progress: 0,
+      status: computedProgress === 100 ? 'Completed' : 'In Progress',
+      progress: computedProgress,
       teamSize: 1,
     });
 
@@ -1191,6 +1588,47 @@ router.post('/virtual-cto/stream', protect, async (req, res) => {
       message: error?.message || 'Virtual CTO stream failed',
     });
     return res.end();
+  }
+});
+
+// @desc    Improve project description text
+// @route   POST /api/project/improve-description
+// @access  Private
+router.post('/improve-description', protect, async (req, res) => {
+  try {
+    const description = toCleanText(req.body?.description, 1600);
+    if (!description) {
+      return res.status(400).json({ error: 'description is required' });
+    }
+
+    if (description.length < 20) {
+      return res.status(400).json({
+        error: 'Please provide a little more detail before auto-improving the description',
+      });
+    }
+
+    const title = toCleanText(req.body?.title, 120);
+    const category = toCleanText(req.body?.category, 60);
+    const roleTitles = Array.isArray(req.body?.roles)
+      ? req.body.roles
+          .map((role) => toCleanText(role?.title, 80))
+          .filter(Boolean)
+          .slice(0, 8)
+      : [];
+
+    const result = await improveTextWithGemini(description, 'project', {
+      title,
+      category,
+      roleTitles,
+    });
+
+    return res.status(200).json({
+      description: result.text,
+      meta: { mode: result.mode },
+    });
+  } catch (error) {
+    console.error('Improve project description error:', error);
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -1456,17 +1894,6 @@ router.post('/:id/invite', protect, async (req, res) => {
 // @access  Private
 router.patch('/:id/progress', protect, async (req, res) => {
   try {
-    const { progress } = req.body || {};
-    const normalizedProgress = Number(progress);
-
-    if (!Number.isFinite(normalizedProgress)) {
-      return res.status(400).json({ error: 'Progress must be a number between 0 and 100' });
-    }
-
-    if (normalizedProgress < 0 || normalizedProgress > 100) {
-      return res.status(400).json({ error: 'Progress must be between 0 and 100' });
-    }
-
     const project = await Project.findById(req.params.id)
       .populate('owner', 'name email')
       .populate('members.user', 'name email');
@@ -1479,7 +1906,7 @@ router.patch('/:id/progress', protect, async (req, res) => {
       return res.status(403).json({ error: 'Only the project owner can update progress' });
     }
 
-    const roundedProgress = Math.round(normalizedProgress);
+    const roundedProgress = calculateRoadmapProgress(project.roadmap || []);
     project.progress = roundedProgress;
 
     if (roundedProgress === 100) {
@@ -1491,7 +1918,7 @@ router.patch('/:id/progress', protect, async (req, res) => {
     await project.save();
 
     return res.status(200).json({
-      message: 'Project progress updated',
+      message: 'Project progress recalculated from roadmap',
       project: toProjectDetail(project, req.user),
     });
   } catch (error) {
@@ -1546,7 +1973,7 @@ router.patch('/:id/source-code', protect, async (req, res) => {
   }
 });
 
-// @desc    Update project roadmap (owner or team member)
+// @desc    Update project roadmap (owner only)
 // @route   PATCH /api/project/:id/roadmap
 // @access  Private
 router.patch('/:id/roadmap', protect, async (req, res) => {
@@ -1568,17 +1995,26 @@ router.patch('/:id/roadmap', protect, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (!isProjectCollaborator(project, req.user._id)) {
+    if (String(project.owner?._id || project.owner) !== String(req.user._id)) {
       return res.status(403).json({
-        error: 'Only project owner or team members can update roadmap',
+        error: 'Only the project owner can update roadmap',
       });
     }
 
     project.roadmap = normalizedRoadmap;
+    const derivedProgress = calculateRoadmapProgress(normalizedRoadmap);
+    project.progress = derivedProgress;
+
+    if (derivedProgress === 100) {
+      project.status = 'Completed';
+    } else if (project.status === 'Completed') {
+      project.status = 'In Progress';
+    }
+
     await project.save();
 
     return res.status(200).json({
-      message: 'Project roadmap updated',
+      message: 'Project roadmap updated and progress recalculated',
       project: toProjectDetail(project, req.user),
     });
   } catch (error) {
@@ -1736,6 +2172,345 @@ router.post('/:id/open-positions', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Open positions from analysis error:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @desc    Create GitHub starter kit for a project (owner only)
+// @route   POST /api/project/:id/github/starter-kit
+// @access  Private
+router.post('/:id/github/starter-kit', protect, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id)
+      .populate('owner', 'name email')
+      .populate('members.user', 'name email');
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    if (String(project.owner?._id || project.owner) !== String(req.user._id)) {
+      return res.status(403).json({ error: 'Only the project owner can create a starter kit' });
+    }
+
+    const githubToken = String(req.body?.githubToken || '').trim();
+    if (!githubToken) {
+      return res.status(400).json({
+        error: 'githubToken is required. Use a GitHub token with repository write access.',
+      });
+    }
+
+    const repoName = toSlug(req.body?.repoName || project.title, `project-${String(project._id).slice(-6)}`);
+    const visibilityInput = String(req.body?.visibility || 'private').toLowerCase();
+    const isPrivate = visibilityInput !== 'public';
+    const shouldCreateIssues = req.body?.createIssues !== false;
+    const shouldCreateBoilerplate = req.body?.createBoilerplate !== false;
+    const starterDescription = String(req.body?.description || project.description || '').trim().slice(0, 220);
+
+    const authenticatedUser = await githubApiRequest('/user', { token: githubToken });
+    const ownerLogin = String(authenticatedUser?.login || '').trim();
+    if (!ownerLogin) {
+      return res.status(400).json({ error: 'Unable to resolve GitHub account from token' });
+    }
+
+    let createdRepo = null;
+    try {
+      createdRepo = await githubApiRequest('/user/repos', {
+        method: 'POST',
+        token: githubToken,
+        body: {
+          name: repoName,
+          private: isPrivate,
+          description: starterDescription || `Starter kit for ${project.title}`,
+          // Initialize default branch so contents API can create/update files reliably.
+          auto_init: true,
+        },
+      });
+    } catch (createRepoError) {
+      // If repo already exists in the authenticated account, continue with that repo.
+      if (createRepoError?.statusCode === 422) {
+        createdRepo = await githubApiRequest(
+          `/repos/${encodeURIComponent(ownerLogin)}/${encodeURIComponent(repoName)}`,
+          { token: githubToken }
+        );
+      } else {
+        throw createRepoError;
+      }
+    }
+
+    const repoUrl = String(createdRepo?.html_url || '').trim();
+    if (!repoUrl) {
+      return res.status(500).json({ error: 'GitHub repository created but URL was not returned' });
+    }
+
+    // Give GitHub a short window to make the newly created repository fully available.
+    await withGitHubRetry(
+      () =>
+        githubApiRequest(
+          `/repos/${encodeURIComponent(ownerLogin)}/${encodeURIComponent(repoName)}`,
+          { token: githubToken }
+        ),
+      { attempts: 4, delayMs: 450, retriableStatusCodes: [404, 409, 500, 502, 503, 504] }
+    );
+
+    const filesCreated = [];
+    const warnings = [];
+    if (shouldCreateBoilerplate) {
+      const starterFiles = buildStarterFiles(project);
+      for (const file of starterFiles) {
+        try {
+          await withGitHubRetry(
+            () =>
+              createOrUpdateRepoFile({
+                owner: ownerLogin,
+                repo: repoName,
+                path: file.path,
+                content: file.content,
+                token: githubToken,
+                message: file.message,
+              }),
+            { attempts: 4, delayMs: 450, retriableStatusCodes: [404, 409, 500, 502, 503, 504] }
+          );
+          filesCreated.push(file.path);
+        } catch (fileError) {
+          warnings.push(`Unable to create file "${file.path}": ${fileError?.message || 'Unknown error'}`);
+        }
+      }
+    } else {
+      try {
+        await withGitHubRetry(
+          () =>
+            createOrUpdateRepoFile({
+              owner: ownerLogin,
+              repo: repoName,
+              path: 'README.md',
+              content: buildStarterReadme(project),
+              token: githubToken,
+              message: 'docs: add generated project README',
+            }),
+          { attempts: 4, delayMs: 450, retriableStatusCodes: [404, 409, 500, 502, 503, 504] }
+        );
+        filesCreated.push('README.md');
+      } catch (fileError) {
+        warnings.push(`Unable to create file "README.md": ${fileError?.message || 'Unknown error'}`);
+      }
+    }
+
+    const labelsToCreate = [
+      { name: 'planning', color: '0E8A16', description: 'Planning and scope items' },
+      { name: 'setup', color: '1D76DB', description: 'Project setup tasks' },
+      { name: 'roadmap', color: '5319E7', description: 'Roadmap execution items' },
+      { name: 'hiring', color: 'D93F0B', description: 'Recruitment related items' },
+      { name: 'tech-debt', color: 'BFDADC', description: 'Refactor and cleanup tasks' },
+    ];
+
+    for (const label of labelsToCreate) {
+      try {
+        await githubApiRequest(
+          `/repos/${encodeURIComponent(ownerLogin)}/${encodeURIComponent(repoName)}/labels`,
+          {
+            method: 'POST',
+            token: githubToken,
+            body: label,
+          }
+        );
+      } catch (labelError) {
+        if (labelError?.statusCode !== 422) {
+          warnings.push(`Unable to create label "${label.name}": ${labelError.message}`);
+        }
+      }
+    }
+
+    const issuesCreated = [];
+    if (shouldCreateIssues) {
+      const starterIssues = buildStarterIssues(project);
+      for (const issue of starterIssues) {
+        try {
+          const createdIssue = await githubApiRequest(
+            `/repos/${encodeURIComponent(ownerLogin)}/${encodeURIComponent(repoName)}/issues`,
+            {
+              method: 'POST',
+              token: githubToken,
+              body: issue,
+            }
+          );
+          issuesCreated.push({
+            number: createdIssue?.number,
+            title: createdIssue?.title,
+            url: createdIssue?.html_url,
+          });
+        } catch (issueError) {
+          warnings.push(`Unable to create issue "${issue.title}": ${issueError.message}`);
+        }
+      }
+    }
+
+    project.sourceCodeUrl = repoUrl;
+    await project.save();
+
+    const refreshed = await Project.findById(project._id)
+      .populate('owner', 'name email')
+      .populate('members.user', 'name email');
+
+    return res.status(201).json({
+      message:
+        warnings.length > 0
+          ? 'GitHub starter kit created with partial warnings'
+          : 'GitHub starter kit created successfully',
+      project: toProjectDetail(refreshed || project, req.user),
+      repo: {
+        name: repoName,
+        fullName: `${ownerLogin}/${repoName}`,
+        url: repoUrl,
+        private: isPrivate,
+      },
+      filesCreated,
+      issuesCreated,
+      warnings,
+    });
+  } catch (error) {
+    console.error('Create GitHub starter kit error:', error);
+    if (error?.statusCode === 401) {
+      return res.status(401).json({ error: 'Invalid GitHub token or missing permissions' });
+    }
+    if (error?.statusCode === 403) {
+      return res.status(403).json({
+        error: 'GitHub denied this action. Ensure your token has repo write permissions.',
+      });
+    }
+    if (error?.statusCode === 404) {
+      return res.status(404).json({
+        error: 'GitHub repository endpoint was not reachable yet. Please retry once in a few seconds.',
+      });
+    }
+    if (error?.statusCode === 422) {
+      return res.status(409).json({
+        error: 'Repository creation failed. The repository name may already exist in your account.',
+      });
+    }
+    if (error?.statusCode === 409) {
+      return res.status(409).json({
+        error: 'Repository is not ready for file creation yet. Try again or initialize the repo first.',
+      });
+    }
+    return res.status(500).json({ error: error?.message || 'Server error' });
+  }
+});
+
+// @desc    Fetch GitHub repository insights for project source code URL
+// @route   GET /api/project/:id/github/insights
+// @access  Private
+router.get('/:id/github/insights', protect, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id).populate('owner', 'name email');
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const repoRef = parseGitHubRepoFromUrl(project.sourceCodeUrl);
+    if (!repoRef) {
+      return res.status(400).json({
+        error: 'No valid GitHub repository is linked to this project yet.',
+      });
+    }
+
+    const githubToken =
+      String(req.query?.githubToken || '').trim() || String(req.headers['x-github-token'] || '').trim();
+
+    const [repoDetails, contributorsRaw, languagesRaw, commitsRaw, openIssuesRaw] = await Promise.all([
+      withGitHubRetry(
+        () =>
+          githubApiRequest(`/repos/${encodeURIComponent(repoRef.owner)}/${encodeURIComponent(repoRef.repo)}`, {
+            token: githubToken,
+          }),
+        { attempts: 3, delayMs: 300, retriableStatusCodes: [404, 429, 500, 502, 503, 504] }
+      ),
+      withGitHubRetry(
+        () =>
+          githubApiRequest(
+            `/repos/${encodeURIComponent(repoRef.owner)}/${encodeURIComponent(repoRef.repo)}/contributors?per_page=20`,
+            { token: githubToken }
+          ),
+        { attempts: 3, delayMs: 300, retriableStatusCodes: [404, 429, 500, 502, 503, 504] }
+      ),
+      withGitHubRetry(
+        () =>
+          githubApiRequest(
+            `/repos/${encodeURIComponent(repoRef.owner)}/${encodeURIComponent(repoRef.repo)}/languages`,
+            { token: githubToken }
+          ),
+        { attempts: 3, delayMs: 300, retriableStatusCodes: [404, 429, 500, 502, 503, 504] }
+      ),
+      withGitHubRetry(
+        () =>
+          githubApiRequest(
+            `/repos/${encodeURIComponent(repoRef.owner)}/${encodeURIComponent(repoRef.repo)}/commits?per_page=12`,
+            { token: githubToken }
+          ),
+        { attempts: 3, delayMs: 300, retriableStatusCodes: [404, 429, 500, 502, 503, 504] }
+      ),
+      withGitHubRetry(
+        () =>
+          githubApiRequest(
+            `/repos/${encodeURIComponent(repoRef.owner)}/${encodeURIComponent(repoRef.repo)}/issues?state=open&per_page=50`,
+            { token: githubToken }
+          ),
+        { attempts: 3, delayMs: 300, retriableStatusCodes: [404, 429, 500, 502, 503, 504] }
+      ),
+    ]);
+
+    const contributors = (Array.isArray(contributorsRaw) ? contributorsRaw : [])
+      .map(normalizeContributor)
+      .slice(0, 12);
+    const totalContributions = contributors.reduce(
+      (sum, contributor) => sum + (Number(contributor.contributions) || 0),
+      0
+    );
+    const languages = mapLanguageBreakdown(languagesRaw || {});
+    const recentActivity = (Array.isArray(commitsRaw) ? commitsRaw : []).map((commit) => ({
+      sha: String(commit?.sha || '').slice(0, 7),
+      message: String(commit?.commit?.message || '').split('\n')[0].slice(0, 140),
+      author: commit?.commit?.author?.name || commit?.author?.login || 'Unknown',
+      date: commit?.commit?.author?.date || null,
+      url: commit?.html_url || '',
+    }));
+    const openIssues = (Array.isArray(openIssuesRaw) ? openIssuesRaw : []).filter(
+      (item) => !item?.pull_request
+    );
+
+    return res.status(200).json({
+      repo: {
+        fullName: repoDetails?.full_name || repoRef.fullName,
+        htmlUrl: repoDetails?.html_url || project.sourceCodeUrl,
+        description: repoDetails?.description || '',
+        defaultBranch: repoDetails?.default_branch || 'main',
+        visibility: repoDetails?.visibility || (repoDetails?.private ? 'private' : 'public'),
+      },
+      stats: {
+        stars: Number(repoDetails?.stargazers_count) || 0,
+        forks: Number(repoDetails?.forks_count) || 0,
+        watchers: Number(repoDetails?.watchers_count) || 0,
+        openIssues: openIssues.length,
+        contributors: contributors.length,
+        totalContributions,
+        sizeKb: Number(repoDetails?.size) || 0,
+      },
+      contributors,
+      languages,
+      recentActivity,
+      fetchedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Fetch project GitHub insights error:', error);
+    if (error?.statusCode === 404) {
+      return res.status(404).json({
+        error:
+          'GitHub repository not found (or private without token). Add a valid GitHub token to load private repo stats.',
+      });
+    }
+    if (error?.statusCode === 403) {
+      return res.status(403).json({ error: 'GitHub rate limit reached. Please try again shortly.' });
+    }
     return res.status(500).json({ error: 'Server error' });
   }
 });

@@ -6,6 +6,7 @@ const Notification = require('../models/Notification');
 const { protect } = require('../middleware/authMiddleware');
 const { searchLocalVectors } = require('../utils/vectorUtils');
 const { generateEmbedding, buildProfileText } = require('../utils/embeddingUtils');
+const { toCleanText, improveTextWithGemini } = require('../utils/textEnhancementUtils');
 const {
     resolveGitHubUsername,
     buildGitHubSummaryForUser,
@@ -571,6 +572,48 @@ router.put('/profile', protect, async (req, res) => {
     } catch (error) {
         console.error('Update profile error:', error);
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// @desc    Improve profile bio text
+// @route   POST /api/user/profile/improve-bio
+// @access  Private
+router.post('/profile/improve-bio', protect, async (req, res) => {
+    try {
+        const bio = toCleanText(req.body?.bio, 1400);
+        if (!bio) {
+            return res.status(400).json({ error: 'bio is required' });
+        }
+
+        if (bio.length < 20) {
+            return res.status(400).json({
+                error: 'Please add a little more context before auto-improving your bio',
+            });
+        }
+
+        const role = toCleanText(req.body?.role, 120);
+        const location = toCleanText(req.body?.location, 120);
+        const skills = Array.isArray(req.body?.skills)
+            ? req.body.skills.map((skill) => toCleanText(skill, 50)).filter(Boolean).slice(0, 12)
+            : [];
+        const interests = Array.isArray(req.body?.interests)
+            ? req.body.interests.map((item) => toCleanText(item, 50)).filter(Boolean).slice(0, 12)
+            : [];
+
+        const result = await improveTextWithGemini(bio, 'profile', {
+            role,
+            location,
+            skills,
+            interests,
+        });
+
+        return res.status(200).json({
+            bio: result.text,
+            meta: { mode: result.mode },
+        });
+    } catch (error) {
+        console.error('Improve profile bio error:', error);
+        return res.status(500).json({ error: 'Server error' });
     }
 });
 

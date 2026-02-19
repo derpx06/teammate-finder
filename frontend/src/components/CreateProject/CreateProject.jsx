@@ -12,6 +12,8 @@ const CreateProject = () => {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    const [improvingDescription, setImprovingDescription] = useState(false);
+    const [improveDescriptionError, setImproveDescriptionError] = useState('');
 
     const [formData, setFormData] = useState({
         title: '',
@@ -253,6 +255,43 @@ const CreateProject = () => {
         }
     };
 
+    const handleAutoImproveDescription = async () => {
+        const description = String(formData.description || '').trim();
+        if (!description) {
+            setImproveDescriptionError('Add a description first, then use Auto Improve.');
+            return;
+        }
+
+        setImprovingDescription(true);
+        setImproveDescriptionError('');
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_BASE_URL}/api/project/improve-description`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    title: formData.title,
+                    category: formData.category,
+                    description: formData.description,
+                    roles: formData.roles,
+                }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to improve description');
+            }
+
+            updateFormData('description', String(data.description || '').trim());
+        } catch (improveError) {
+            setImproveDescriptionError(improveError.message || 'Failed to improve description');
+        } finally {
+            setImprovingDescription(false);
+        }
+    };
+
     if (success) {
         return (
             <div className="surface-card max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
@@ -276,7 +315,16 @@ const CreateProject = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <ProjectOverview formData={formData} updateFormData={updateFormData} />
+                    <ProjectOverview
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        onAutoImproveDescription={handleAutoImproveDescription}
+                        improvingDescription={improvingDescription}
+                        improveDescriptionError={improveDescriptionError}
+                        onDescriptionInput={() => {
+                            if (improveDescriptionError) setImproveDescriptionError('');
+                        }}
+                    />
 
                     <div className="grid md:grid-cols-2 gap-6">
                         <OpenRoles formData={formData} updateFormData={updateFormData} />

@@ -1,6 +1,14 @@
 import React from 'react';
+import { Loader2, Sparkles } from 'lucide-react';
 
-const ProjectOverview = ({ formData, updateFormData }) => {
+const ProjectOverview = ({
+    formData,
+    updateFormData,
+    onAutoImproveDescription,
+    improvingDescription,
+    improveDescriptionError,
+    onDescriptionInput,
+}) => {
     return (
         <div className="surface-card p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Project Overview</h2>
@@ -36,14 +44,44 @@ const ProjectOverview = ({ formData, updateFormData }) => {
                 </div>
 
                 <div>
-                    <label className="form-label">Description</label>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                        <label className="form-label mb-0">Description</label>
+                        <button
+                            type="button"
+                            onClick={onAutoImproveDescription}
+                            disabled={improvingDescription}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                            {improvingDescription ? (
+                                <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    Improving...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-3.5 w-3.5" />
+                                    Auto Improve
+                                </>
+                            )}
+                        </button>
+                    </div>
                     <textarea
                         rows={5}
                         value={formData.description}
-                        onChange={(e) => updateFormData('description', e.target.value)}
+                        onChange={(e) => {
+                            updateFormData('description', e.target.value);
+                            if (typeof onDescriptionInput === 'function') onDescriptionInput();
+                        }}
                         placeholder="Describe your project, its goals, and what you're building..."
                         className="field-textarea resize-none"
                     />
+                    {improveDescriptionError ? (
+                        <p className="mt-2 text-xs text-red-600">{improveDescriptionError}</p>
+                    ) : (
+                        <p className="mt-2 text-xs text-gray-500">
+                            Auto Improve rewrites your draft into a clearer, professional description.
+                        </p>
+                    )}
                 </div>
 
                 <div>

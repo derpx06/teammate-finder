@@ -85,6 +85,12 @@ const roadmapPhaseSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    progress: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
   },
   { _id: false }
 );

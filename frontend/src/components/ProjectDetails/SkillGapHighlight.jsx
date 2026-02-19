@@ -1,7 +1,12 @@
 import React from 'react';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 
-const SkillGapHighlight = ({ missingSkills, onReviewGaps, reviewing = false }) => {
+const SkillGapHighlight = ({
+    missingSkills,
+    onReviewGaps,
+    reviewing = false,
+    showReviewAction = true,
+}) => {
     if (!missingSkills || missingSkills.length === 0) return null;
 
     return (
@@ -24,15 +29,17 @@ const SkillGapHighlight = ({ missingSkills, onReviewGaps, reviewing = false }) =
                     </p>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={onReviewGaps}
-                    disabled={reviewing}
-                    className="flex items-center px-4 py-2 bg-white text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors font-medium shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                    {reviewing ? 'Analyzing...' : 'Review Gaps'}
-                    <ChevronRight size={16} className="ml-2" />
-                </button>
+                {showReviewAction ? (
+                    <button
+                        type="button"
+                        onClick={onReviewGaps}
+                        disabled={reviewing}
+                        className="flex items-center px-4 py-2 bg-white text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors font-medium shadow-sm whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        {reviewing ? 'Analyzing...' : 'Review Gaps'}
+                        <ChevronRight size={16} className="ml-2" />
+                    </button>
+                ) : null}
             </div>
         </div>
     );
