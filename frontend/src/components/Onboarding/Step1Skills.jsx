@@ -108,7 +108,7 @@ const Step1Skills = ({ formData, updateFormData }) => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={handleSearchKeyDown}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-gray-400"
+                    className="field-input w-full pl-10 pr-4 py-3"
                     placeholder="Search or type a new skill (e.g. React, Python, Prisma)"
                 />
             </div>

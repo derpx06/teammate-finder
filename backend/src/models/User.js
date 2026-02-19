@@ -102,6 +102,28 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    socialLinks: {
+        linkedin: {
+            type: String,
+            trim: true,
+            default: ''
+        },
+        twitter: {
+            type: String,
+            trim: true,
+            default: ''
+        },
+        portfolio: {
+            type: String,
+            trim: true,
+            default: ''
+        },
+        other: {
+            type: String,
+            trim: true,
+            default: ''
+        }
+    },
     experienceLevel: {
         type: String,
         enum: ['Junior', 'Mid-level', 'Senior', 'Expert'],

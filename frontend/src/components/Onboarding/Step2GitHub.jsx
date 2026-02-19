@@ -189,7 +189,7 @@ const Step2GitHub = ({ formData, updateFormData }) => {
             <p className="text-gray-600 mb-8">Connect your GitHub to automatically showcase your best repositories and contributions.</p>
 
             {/* GitHub Card */}
-            <div className={`border rounded-2xl p-6 transition-all ${formData.githubConnected ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'
+            <div className={`border rounded-2xl p-6 transition-all ${formData.githubConnected ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-white'
                 }`}>
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -215,7 +215,7 @@ const Step2GitHub = ({ formData, updateFormData }) => {
                         <button
                             onClick={handleConnect}
                             disabled={loading}
-                            className="w-full flex items-center justify-center px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="btn-primary w-full px-4 py-3 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <>
@@ -230,7 +230,7 @@ const Step2GitHub = ({ formData, updateFormData }) => {
                         <button
                             onClick={handleDisconnect}
                             disabled={loading}
-                            className="w-full px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="btn-secondary w-full px-4 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Disconnecting...' : 'Disconnect'}
                         </button>

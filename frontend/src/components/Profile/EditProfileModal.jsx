@@ -20,6 +20,12 @@ const EditProfileModal = ({ user, onClose, onSave, initialTab = 'general' }) => 
         bio: '',
         location: '',
         website: '',
+        socialLinks: {
+            linkedin: '',
+            twitter: '',
+            portfolio: '',
+            other: '',
+        },
         skills: [],
         interests: [],
         availability: {},
@@ -64,70 +70,112 @@ const EditProfileModal = ({ user, onClose, onSave, initialTab = 'general' }) => 
                 return (
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <label className="form-label">Full Name</label>
                             <input
                                 type="text"
                                 value={formData.name || ''}
                                 onChange={e => updateFormData('name', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="field-input"
                             />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                                <label className="form-label">Age</label>
                                 <input
                                     type="number"
                                     value={formData.age || ''}
                                     onChange={e => updateFormData('age', e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="field-input"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Qualifications</label>
+                                <label className="form-label">Qualifications</label>
                                 <input
                                     type="text"
                                     value={formData.qualifications || ''}
                                     onChange={e => updateFormData('qualifications', e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="field-input"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Role/Title</label>
+                            <label className="form-label">Role/Title</label>
                             <input
                                 type="text"
                                 value={formData.role || ''}
                                 onChange={e => updateFormData('role', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="field-input"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Profile Description</label>
+                            <label className="form-label">Profile Description</label>
                             <textarea
                                 rows={4}
                                 value={formData.bio || ''}
                                 onChange={e => updateFormData('bio', e.target.value)}
                                 placeholder="Write a short description about your profile, skills, and what you are looking for."
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="field-textarea"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                            <label className="form-label">Location</label>
                             <input
                                 type="text"
                                 value={formData.location || ''}
                                 onChange={e => updateFormData('location', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="field-input"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                            <label className="form-label">Website</label>
                             <input
                                 type="url"
                                 value={formData.website || ''}
                                 onChange={e => updateFormData('website', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="field-input"
                             />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="form-label">LinkedIn</label>
+                                <input
+                                    type="url"
+                                    value={formData.socialLinks?.linkedin || ''}
+                                    onChange={e => updateFormData('socialLinks', { ...(formData.socialLinks || {}), linkedin: e.target.value })}
+                                    placeholder="https://linkedin.com/in/username"
+                                    className="field-input"
+                                />
+                            </div>
+                            <div>
+                                <label className="form-label">Twitter / X</label>
+                                <input
+                                    type="url"
+                                    value={formData.socialLinks?.twitter || ''}
+                                    onChange={e => updateFormData('socialLinks', { ...(formData.socialLinks || {}), twitter: e.target.value })}
+                                    placeholder="https://x.com/username"
+                                    className="field-input"
+                                />
+                            </div>
+                            <div>
+                                <label className="form-label">Portfolio</label>
+                                <input
+                                    type="url"
+                                    value={formData.socialLinks?.portfolio || ''}
+                                    onChange={e => updateFormData('socialLinks', { ...(formData.socialLinks || {}), portfolio: e.target.value })}
+                                    placeholder="https://yourportfolio.com"
+                                    className="field-input"
+                                />
+                            </div>
+                            <div>
+                                <label className="form-label">Other Link</label>
+                                <input
+                                    type="url"
+                                    value={formData.socialLinks?.other || ''}
+                                    onChange={e => updateFormData('socialLinks', { ...(formData.socialLinks || {}), other: e.target.value })}
+                                    placeholder="https://any-link.com"
+                                    className="field-input"
+                                />
+                            </div>
                         </div>
                     </div>
                 );
@@ -145,8 +193,8 @@ const EditProfileModal = ({ user, onClose, onSave, initialTab = 'general' }) => 
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="auth-panel rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
                 <div className="flex justify-between items-center p-6 border-b border-gray-100">
                     <h2 className="text-xl font-bold text-gray-900">Edit Profile</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -179,14 +227,14 @@ const EditProfileModal = ({ user, onClose, onSave, initialTab = 'general' }) => 
                     <button
                         onClick={onClose}
                         disabled={saving}
-                        className="px-6 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors font-medium"
+                        className="btn-secondary px-6 py-2.5"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={saving}
-                        className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="btn-primary px-6 py-2.5 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {saving ? 'Saving...' : 'Save Changes'}
                     </button>

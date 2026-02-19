@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Trash2, X } from 'lucide-react';
+import { AlertCircle, Trash2 } from 'lucide-react';
 
 const ConfirmModal = ({
     isOpen,
@@ -32,7 +32,7 @@ const ConfirmModal = ({
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                    className="relative auth-panel rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
                 >
                     <div className="p-6">
                         <div className="flex items-start gap-4">
@@ -50,17 +50,14 @@ const ConfirmModal = ({
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="btn-secondary px-4 py-2 text-sm"
                         >
                             {cancelText}
                         </button>
                         <button
                             onClick={onConfirm}
                             disabled={isLoading}
-                            className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-all flex items-center gap-2 ${isDanger
-                                    ? 'bg-red-600 hover:bg-red-700 hover:shadow-red-600/20'
-                                    : 'bg-blue-600 hover:bg-blue-700 hover:shadow-blue-600/20'
-                                } ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`${isDanger ? 'btn-danger' : 'btn-primary'} px-4 py-2 text-sm flex items-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             {isLoading ? 'Processing...' : confirmText}
                         </button>

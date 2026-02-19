@@ -61,6 +61,23 @@ const normalizeAvailability = (availability) => {
         .filter((item) => item.slots.length > 0);
 };
 
+const normalizeSocialLinks = (socialLinks) => {
+    if (!socialLinks || typeof socialLinks !== 'object') {
+        return {
+            linkedin: '',
+            twitter: '',
+            portfolio: '',
+            other: '',
+        };
+    }
+    return {
+        linkedin: toSafeString(socialLinks.linkedin),
+        twitter: toSafeString(socialLinks.twitter),
+        portfolio: toSafeString(socialLinks.portfolio),
+        other: toSafeString(socialLinks.other),
+    };
+};
+
 const TeammateDetailsModal = ({ user, onClose }) => {
     const [detailedUser, setDetailedUser] = useState(null);
     const [profileLoading, setProfileLoading] = useState(false);
@@ -180,6 +197,7 @@ const TeammateDetailsModal = ({ user, onClose }) => {
             bio: toSafeString(activeUser.bio),
             location: toSafeString(activeUser.location, 'Remote'),
             website: toSafeString(activeUser.website),
+            socialLinks: normalizeSocialLinks(activeUser.socialLinks),
             githubUsername: toSafeString(activeUser.githubUsername),
             qualifications: toSafeString(activeUser.qualifications, 'N/A'),
             experienceLevel: toSafeString(activeUser.experienceLevel, 'Junior'),
@@ -210,6 +228,10 @@ const TeammateDetailsModal = ({ user, onClose }) => {
 
     const availabilityRows = normalizeAvailability(safeUser?.availability);
     const websiteUrl = toAbsoluteUrl(safeUser?.website);
+    const linkedinUrl = toAbsoluteUrl(safeUser?.socialLinks?.linkedin);
+    const twitterUrl = toAbsoluteUrl(safeUser?.socialLinks?.twitter);
+    const portfolioUrl = toAbsoluteUrl(safeUser?.socialLinks?.portfolio);
+    const otherUrl = toAbsoluteUrl(safeUser?.socialLinks?.other);
     const githubUrl = effectiveGithubUsername ? `https://github.com/${effectiveGithubUsername}` : null;
     const profileReadme = effectiveGithubSummary?.profileReadme || safeUser?.githubProfileReadme || null;
     const profileReadmeHtml =
@@ -257,11 +279,11 @@ const TeammateDetailsModal = ({ user, onClose }) => {
     if (!safeUser) {
         return (
             <div
-                className="fixed inset-0 z-50 bg-gray-900/60 p-4 sm:p-6 flex items-center justify-center"
+                className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm p-4 sm:p-6 flex items-center justify-center"
                 onClick={onClose}
             >
                 <div
-                    className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-100"
+                    className="surface-card w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-100"
                     onClick={(event) => event.stopPropagation()}
                 >
                     <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
@@ -284,11 +306,11 @@ const TeammateDetailsModal = ({ user, onClose }) => {
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-gray-900/60 p-4 sm:p-6 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-gray-900/60 backdrop-blur-sm p-4 sm:p-6 flex items-center justify-center"
             onClick={onClose}
         >
             <div
-                className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto"
+                className="surface-card w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto"
                 onClick={(event) => event.stopPropagation()}
             >
                 <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
@@ -417,6 +439,50 @@ const TeammateDetailsModal = ({ user, onClose }) => {
                                     </span>
                                 )}
                             </div>
+                            {(linkedinUrl || twitterUrl || portfolioUrl || otherUrl) ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {linkedinUrl ? (
+                                        <a
+                                            href={linkedinUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-2.5 py-1 text-xs font-semibold rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                                        >
+                                            LinkedIn
+                                        </a>
+                                    ) : null}
+                                    {twitterUrl ? (
+                                        <a
+                                            href={twitterUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-2.5 py-1 text-xs font-semibold rounded-full border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 transition-colors"
+                                        >
+                                            X / Twitter
+                                        </a>
+                                    ) : null}
+                                    {portfolioUrl ? (
+                                        <a
+                                            href={portfolioUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-2.5 py-1 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                        >
+                                            Portfolio
+                                        </a>
+                                    ) : null}
+                                    {otherUrl ? (
+                                        <a
+                                            href={otherUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-2.5 py-1 text-xs font-semibold rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                        >
+                                            Other Link
+                                        </a>
+                                    ) : null}
+                                </div>
+                            ) : null}
                         </div>
                     </div>
 

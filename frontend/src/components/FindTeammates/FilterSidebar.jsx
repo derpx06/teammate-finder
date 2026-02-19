@@ -17,7 +17,7 @@ const FilterSidebar = ({ filters, setFilters }) => {
     };
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-fit sticky top-24">
+        <div className="surface-card rounded-2xl p-6 h-fit sticky top-24">
             <div className="flex items-center gap-2 mb-6 text-gray-900 font-bold text-lg">
                 <Filter size={20} className="text-blue-600" />
                 Filters

@@ -342,13 +342,15 @@ const FindTeammates = () => {
     const isLoadingTeammates = isSemanticMode ? semanticLoading : loading;
 
     return (
-        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Find Teammates</h1>
-                <p className="text-gray-500 mt-2">Discover talented developers, designers, and creators for your next project.</p>
+        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 page-shell">
+            <div className="page-header">
+                <div>
+                    <h1 className="page-title">Find Teammates</h1>
+                    <p className="page-subtitle">Discover talented developers, designers, and creators for your next project.</p>
+                </div>
             </div>
 
-            <section className="mb-8 bg-white border border-blue-100 rounded-2xl shadow-sm p-4 sm:p-5">
+            <section className="mb-8 surface-card border border-blue-100 p-4 sm:p-5">
                 <div className="flex items-center gap-2 text-blue-700 mb-3">
                     <Sparkles size={18} />
                     <h2 className="text-base sm:text-lg font-bold">AI Semantic Search</h2>
@@ -363,12 +365,12 @@ const FindTeammates = () => {
                         value={semanticQuery}
                         onChange={(event) => setSemanticQuery(event.target.value)}
                         placeholder="Describe the teammate you need..."
-                        className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="field-input flex-1 px-4 py-3"
                     />
                     <button
                         type="submit"
                         disabled={semanticLoading}
-                        className="px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed font-medium"
+                        className="btn-primary px-5 py-3 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {semanticLoading ? 'Searching...' : 'Smart Search'}
                     </button>
@@ -376,7 +378,7 @@ const FindTeammates = () => {
                     <button
                         type="button"
                         onClick={clearSemanticSearch}
-                        className="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                        className="btn-secondary px-5 py-3"
                     >
                         Clear
                     </button>
@@ -447,11 +449,11 @@ const FindTeammates = () => {
                                 placeholder="Search by name/skill or natural language (e.g., need a Web3 teammate)..."
                                 value={searchQuery}
                                 onChange={(e) => handleSearchChange(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                                className="field-input w-full pl-12 pr-4 py-3 bg-white shadow-sm"
                             />
                             <button
                                 type="submit"
-                                className="px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors text-sm font-medium"
+                                className="btn-secondary px-4 py-3 text-sm"
                             >
                                 Search
                             </button>
@@ -508,14 +510,14 @@ const FindTeammates = () => {
                 fallback={
                     selectedTeammate ? (
                         <div className="fixed inset-0 z-50 bg-gray-900/60 p-4 sm:p-6 flex items-center justify-center">
-                            <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-100 p-6">
+                            <div className="surface-card w-full max-w-xl rounded-2xl shadow-2xl border border-gray-100 p-6">
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">Unable to open teammate profile</h3>
                                 <p className="text-sm text-gray-600 mb-4">
                                     Some profile data is invalid. Please close and try another teammate.
                                 </p>
                                 <button
                                     onClick={() => setSelectedTeammate(null)}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="btn-primary px-4 py-2"
                                 >
                                     Close
                                 </button>

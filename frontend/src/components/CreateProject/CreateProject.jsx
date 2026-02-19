@@ -255,7 +255,7 @@ const CreateProject = () => {
 
     if (success) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+            <div className="surface-card max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
                     <CheckCircle className="w-10 h-10 text-green-600" />
                 </div>
@@ -267,10 +267,12 @@ const CreateProject = () => {
 
     return (
         <>
-            <div className="max-w-4xl mx-auto">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Create New Project</h1>
-                    <p className="text-gray-500 mt-2">Share your idea and find the perfect team to build it.</p>
+            <div className="max-w-4xl mx-auto page-shell">
+                <div className="page-header">
+                    <div>
+                        <h1 className="page-title">Create New Project</h1>
+                        <p className="page-subtitle">Share your idea and find the perfect team to build it.</p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -286,14 +288,14 @@ const CreateProject = () => {
                         <button
                             type="button"
                             onClick={() => navigate('/projects')}
-                            className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors font-medium mr-4"
+                            className="btn-secondary px-6 py-3 mr-4"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading || !formData.title || formData.roles.length === 0}
-                            className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-primary flex items-center px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <>

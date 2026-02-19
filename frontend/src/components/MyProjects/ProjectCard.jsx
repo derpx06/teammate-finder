@@ -31,21 +31,18 @@ const ProjectCard = ({ project, onDelete }) => {
     };
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group relative">
+        <div className="surface-card rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all card-hover-lift group relative">
             <div className="flex justify-between items-start mb-4">
                 <span className={`px-2 py-1 rounded-md text-xs font-bold ${getStatusColor(project.status)}`}>
                     {project.status}
                 </span>
                 <div className="relative" ref={menuRef}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors"
-                    >
+                    <button onClick={() => setShowMenu(!showMenu)} className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-full transition-colors">
                         <MoreVertical size={16} />
                     </button>
 
                     {showMenu && (
-                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
                             <button
                                 onClick={() => {
                                     setShowMenu(false);
@@ -106,7 +103,7 @@ const ProjectCard = ({ project, onDelete }) => {
                 </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <span className="text-xs font-medium text-gray-500">
                     My Role: <span className="text-blue-600">{project.role}</span>
                 </span>

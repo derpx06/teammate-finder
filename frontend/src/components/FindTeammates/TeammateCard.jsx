@@ -25,7 +25,7 @@ const TeammateCard = ({
                     onViewDetails?.(user);
                 }
             }}
-            className="group relative bg-white rounded-2xl p-5 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-blue-100 flex flex-col h-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="group relative surface-card rounded-2xl p-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-blue-100 flex flex-col h-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 card-hover-lift"
         >
             {/* Semantic Match Badge - Floating */}
             {typeof user.semanticScore === 'number' && (
@@ -119,7 +119,7 @@ const TeammateCard = ({
                             onConnect?.(user);
                         }}
                         disabled={isConnecting}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-black transition-all active:scale-95 disabled:opacity-70 disabled:active:scale-100 shadow-sm hover:shadow-md"
+                        className="btn-primary flex-1 flex items-center justify-center gap-2 py-2.5 text-sm active:scale-95 disabled:opacity-70 disabled:active:scale-100"
                     >
                         {isConnecting ? (
                             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

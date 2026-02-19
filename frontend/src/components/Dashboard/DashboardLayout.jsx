@@ -124,13 +124,13 @@ const DashboardLayout = ({ children }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="dashboard-shell min-h-screen flex text-slate-900">
             <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-            <div className="flex-1 flex flex-col min-w-0 lg:pl-64 transition-all duration-300">
+            <div className="dashboard-main flex-1 flex flex-col min-w-0 lg:pl-64 transition-all duration-300">
                 <TopBar onMenuClick={() => setIsSidebarOpen(true)} />
 
-                <main className="flex-1 p-4 lg:p-8 2xl:p-10 overflow-y-auto">
+                <main className="flex-1 p-4 lg:p-8 2xl:p-10 overflow-y-auto page-shell">
                     {children}
                 </main>
             </div>

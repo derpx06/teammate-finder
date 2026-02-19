@@ -14,7 +14,7 @@ const Step0BasicInfo = ({ formData, updateFormData }) => {
 
             <div className="space-y-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <label className="form-label">Full Name</label>
                     <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
@@ -22,14 +22,14 @@ const Step0BasicInfo = ({ formData, updateFormData }) => {
                             name="name"
                             value={formData.name || ''}
                             onChange={handleChange}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-gray-400"
+                            className="field-input w-full pl-10 pr-4 py-3"
                             placeholder="John Doe"
                         />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                    <label className="form-label">Age</label>
                     <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
@@ -37,14 +37,14 @@ const Step0BasicInfo = ({ formData, updateFormData }) => {
                             name="age"
                             value={formData.age || ''}
                             onChange={handleChange}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-gray-400"
+                            className="field-input w-full pl-10 pr-4 py-3"
                             placeholder="25"
                         />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Qualifications</label>
+                    <label className="form-label">Qualifications</label>
                     <div className="relative">
                         <Award className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
@@ -52,7 +52,7 @@ const Step0BasicInfo = ({ formData, updateFormData }) => {
                             name="qualifications"
                             value={formData.qualifications || ''}
                             onChange={handleChange}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-gray-400"
+                            className="field-input w-full pl-10 pr-4 py-3"
                             placeholder="e.g. B.Tech in Computer Science"
                         />
                     </div>

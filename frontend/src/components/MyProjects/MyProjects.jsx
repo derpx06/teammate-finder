@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Folder, Loader2, Plus } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProjectCard from './ProjectCard';
-import ConfirmModal from '../Common/ConfirmModal';
+import ConfirmModal from '../common/ConfirmModal';
 import { API_BASE_URL } from '../../config/api';
 
 const MyProjects = () => {
@@ -105,15 +105,15 @@ const MyProjects = () => {
     };
 
     return (
-        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto page-shell">
+            <div className="page-header">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">My Projects</h1>
-                    <p className="text-gray-500 mt-2">Manage and track all your collaborative work.</p>
+                    <h1 className="page-title">My Projects</h1>
+                    <p className="page-subtitle">Manage and track all your collaborative work.</p>
                 </div>
                 <button
                     onClick={() => navigate('/create-project')}
-                    className="flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                    className="btn-primary flex items-center justify-center px-4 py-2.5"
                 >
                     <Plus size={20} className="mr-2" />
                     New Project
@@ -121,18 +121,18 @@ const MyProjects = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl w-fit mb-8">
+            <div className="flex items-center gap-1 bg-white/80 border border-slate-200 p-1 rounded-xl w-fit mb-8 shadow-sm">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                        className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="activeTab"
-                                className="absolute inset-0 bg-white shadow-sm rounded-lg"
+                                className="absolute inset-0 bg-white shadow-sm rounded-lg border border-slate-200"
                                 transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                             />
                         )}

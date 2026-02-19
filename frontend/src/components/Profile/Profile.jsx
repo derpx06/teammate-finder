@@ -42,6 +42,12 @@ const Profile = () => {
         skills: Array.isArray(profile.skills) ? profile.skills : [],
         interests: Array.isArray(profile.interests) ? profile.interests : [],
         availability: profile.availability || {},
+        socialLinks: {
+            linkedin: String(profile?.socialLinks?.linkedin || '').trim(),
+            twitter: String(profile?.socialLinks?.twitter || '').trim(),
+            portfolio: String(profile?.socialLinks?.portfolio || '').trim(),
+            other: String(profile?.socialLinks?.other || '').trim(),
+        },
     });
 
     const persistAuthUser = (profile) => {
@@ -183,6 +189,7 @@ const Profile = () => {
                 bio: updatedUser.bio,
                 location: updatedUser.location,
                 website: updatedUser.website,
+                socialLinks: updatedUser.socialLinks || {},
                 skills: updatedUser.skills || [],
                 interests: updatedUser.interests || [],
                 availability: updatedUser.availability || {},
@@ -227,7 +234,7 @@ const Profile = () => {
     }
 
     return (
-        <div className="max-w-6xl xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto space-y-6">
+        <div className="max-w-6xl xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto space-y-6 page-shell">
             <ProfileHeader
                 user={user}
                 onEdit={() => openEditModal('general')}
@@ -247,7 +254,7 @@ const Profile = () => {
                 {/* Right Column - Interests & GitHub */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* GitHub Repositories */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <div className="surface-card rounded-2xl p-6">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
                                 <span className="p-1.5 bg-gray-100 rounded-lg">
@@ -425,7 +432,7 @@ const Profile = () => {
                         )}
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <div className="surface-card rounded-2xl p-6">
                         <h3 className="font-bold text-gray-900 text-lg mb-4">Project Interests</h3>
                         <p className="text-gray-500 text-sm mb-5">
                             These were selected during onboarding and are used for matching.

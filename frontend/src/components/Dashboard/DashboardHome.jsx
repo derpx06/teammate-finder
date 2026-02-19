@@ -50,7 +50,7 @@ const DashboardHome = () => {
             {
                 label: 'Project Invites',
                 value: values.pendingInvites ?? 0,
-                icon: <Users className="text-purple-600" />,
+                icon: <Users className="text-cyan-600" />,
                 trend: `${values.suggestedMatches ?? 0} suggested teammates`,
             },
             {
@@ -93,16 +93,16 @@ const DashboardHome = () => {
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 page-shell">
             {/* Welcome Header */}
-            <div className="flex justify-between items-end">
+            <div className="page-header">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}!</h1>
-                    <p className="text-gray-500">Here&apos;s what&apos;s happening with your projects today.</p>
+                    <h1 className="page-title text-2xl sm:text-3xl">Welcome back, {firstName}!</h1>
+                    <p className="page-subtitle">Here&apos;s what&apos;s happening with your projects today.</p>
                 </div>
                 <button
                     onClick={() => navigate('/create-project')}
-                    className="hidden md:flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    className="btn-primary hidden md:inline-flex"
                 >
                     <Star className="w-4 h-4 mr-2" />
                     Create New Project
@@ -117,7 +117,7 @@ const DashboardHome = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="p-6 bg-white rounded-xl shadow-sm border border-gray-100"
+                        className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 card-hover-lift"
                     >
                         <div className="flex items-center justify-between mb-4">
                             <div className="p-3 bg-gray-50 rounded-lg">{stat.icon}</div>
@@ -208,7 +208,7 @@ const DashboardHome = () => {
                     <section>
                         <h2 className="text-lg font-bold text-gray-900 mb-4">Skill Gap Alerts</h2>
                         {skillGaps.missingSkills.length > 0 ? (
-                            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-start gap-3">
+                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
                                 <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
                                 <div>
                                     <h3 className="font-semibold text-orange-900">
@@ -267,7 +267,7 @@ const DashboardHome = () => {
                                                 skills: Array.isArray(match.skills) ? match.skills : [],
                                             })
                                         }
-                                        className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
+                                        className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all card-hover-lift cursor-pointer"
                                     >
                                         <div className="flex justify-between items-start mb-2">
                                             <h3 className="font-bold text-gray-900">{match.name}</h3>

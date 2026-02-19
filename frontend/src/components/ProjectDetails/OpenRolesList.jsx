@@ -10,7 +10,7 @@ const OpenRolesList = ({
     const normalizedApplyingRole = String(applyingRoleTitle || '').trim().toLowerCase();
 
     return (
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-6">
+        <div className="surface-card rounded-2xl p-8 mb-6">
             <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <Briefcase className="text-blue-600" size={24} />
                 Open Positions
@@ -25,7 +25,7 @@ const OpenRolesList = ({
                     {roles.map((role) => (
                     <div
                         key={role.id}
-                        className="group flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer bg-gray-50/50 hover:bg-white"
+                        className="group flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all cursor-pointer bg-gray-50/50 hover:bg-white card-hover-lift"
                     >
                         <div className="mb-4 md:mb-0">
                             <h4 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -54,7 +54,7 @@ const OpenRolesList = ({
                             {canApply ? (
                                 <button
                                     type="button"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="btn-primary px-4 py-2 text-sm flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
                                     onClick={() => onApplyRole?.(role)}
                                     disabled={
                                         Number(role.spots) < 1 ||

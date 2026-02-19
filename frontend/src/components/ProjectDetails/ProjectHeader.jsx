@@ -7,7 +7,7 @@ const ProjectHeader = ({ project }) => {
     const projectStatus = project.status || 'In Progress';
 
     return (
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-6">
+        <div className="surface-card rounded-2xl p-8 mb-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
@@ -21,7 +21,7 @@ const ProjectHeader = ({ project }) => {
                 </div>
                 <button
                     onClick={() => navigate(`/chat?projectId=${encodeURIComponent(project.id)}`)}
-                    className="flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium">
+                    className="btn-secondary flex items-center px-4 py-2">
                     <MessageCircle size={18} className="mr-2" />
                     Discuss Project
                 </button>

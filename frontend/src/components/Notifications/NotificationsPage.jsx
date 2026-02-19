@@ -144,23 +144,23 @@ const NotificationsPage = () => {
     );
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="max-w-4xl mx-auto page-shell">
+            <div className="page-header">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-                    <p className="text-gray-500 mt-2">Manage your alerts and activity updates.</p>
+                    <h1 className="page-title">Notifications</h1>
+                    <p className="page-subtitle">Manage your alerts and activity updates.</p>
                 </div>
                 <button
                     onClick={handleMarkAllRead}
                     disabled={!hasUnread}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-secondary flex items-center gap-2 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <CheckCircle size={18} />
                     Mark all as read
                 </button>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="surface-card rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {error ? (
                     <div className="m-3 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
                         {error}

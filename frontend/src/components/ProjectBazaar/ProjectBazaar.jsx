@@ -43,6 +43,7 @@ const ProjectBazaar = () => {
         const roleTitle = String(item?.roleTitle || '').trim();
         const itemId = String(item?.id || '').trim();
         if (!projectId || !roleTitle || !itemId) return;
+        if (item?.applied || item?.canApply === false) return;
 
         setApplyError('');
         setApplySuccess('');
@@ -63,6 +64,13 @@ const ProjectBazaar = () => {
             }
 
             setApplySuccess(`Applied for ${roleTitle}. Project lead has been notified.`);
+            setItems((prevItems) =>
+                prevItems.map((prevItem) =>
+                    String(prevItem?.projectId || '').trim() === projectId
+                        ? { ...prevItem, applied: true, canApply: false }
+                        : prevItem
+                )
+            );
         } catch (actionError) {
             setApplyError(actionError.message || 'Failed to submit application');
         } finally {
@@ -125,20 +133,20 @@ const ProjectBazaar = () => {
     }, [items, search, selectedSkill, selectedCategory]);
 
     return (
-        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto space-y-6 page-shell">
+            <div className="page-header">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Project Bazaar</h1>
-                    <p className="text-gray-500 mt-2">
+                    <h1 className="page-title">Project Bazaar</h1>
+                    <p className="page-subtitle">
                         Structured feed of open project roles posted by founders and team leads.
                     </p>
                 </div>
-                <div className="text-sm text-gray-500 bg-white border border-gray-200 rounded-xl px-4 py-2">
+                <div className="pill-soft text-sm text-gray-500 bg-white border border-gray-200 rounded-xl px-4 py-2">
                     {filteredItems.length} role{filteredItems.length !== 1 ? 's' : ''} available
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm space-y-4">
+            <div className="surface-card p-4 space-y-4">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -146,7 +154,7 @@ const ProjectBazaar = () => {
                         onChange={(event) => setSearch(event.target.value)}
                         type="text"
                         placeholder="Search by project, role, skill, or owner"
-                        className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="field-input w-full pl-10 pr-4 py-2.5 text-sm"
                     />
                 </div>
 
@@ -236,75 +244,90 @@ const ProjectBazaar = () => {
                                                 `${category} Projects`}
                             </h2>
                             <div className="grid lg:grid-cols-2 gap-5">
-                                {categoryItems.map((item) => (
-                                    <article
-                                        key={item.id}
-                                        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow"
-                                    >
-                                        <div className="flex items-start justify-between gap-4 mb-3">
-                                            <div>
-                                                <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide mb-1">
-                                                    {item.projectCategory || 'General'}
-                                                </p>
-                                                <h3 className="text-lg font-bold text-gray-900">{item.roleTitle}</h3>
-                                                <p className="text-sm text-gray-600 mt-0.5">in {item.projectTitle}</p>
-                                            </div>
-                                            {Number(item.durationHours) > 0 ? (
-                                                <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800">
-                                                    <Clock3 size={12} />
-                                                    {item.durationHours}h
-                                                </span>
-                                            ) : null}
-                                        </div>
+                                {categoryItems.map((item) => {
+                                    const itemId = String(item.id);
+                                    const isApplying = applyingItemId === itemId;
+                                    const isApplied = Boolean(item.applied);
+                                    const canApply = typeof item.canApply === 'boolean'
+                                        ? item.canApply
+                                        : !isApplied;
+                                    const isClosed = Number(item.spots) < 1;
 
-                                        <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-                                            {item.projectDescription}
-                                        </p>
-
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {(item.skills || []).map((skill, idx) => (
-                                                <span
-                                                    key={`${item.id}-${skill}-${idx}`}
-                                                    className="px-2 py-1 text-xs font-medium rounded-md bg-gray-50 border border-gray-200 text-gray-700"
-                                                >
-                                                    {skill}
-                                                </span>
-                                            ))}
-                                        </div>
-
-                                        <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-                                            <div className="text-xs text-gray-500 space-y-1">
-                                                <p>Posted by {item.owner?.name || 'Project Owner'}</p>
-                                                <p className="inline-flex items-center gap-1">
-                                                    <Users size={12} />
-                                                    {item.spots} spot{item.spots > 1 ? 's' : ''} open
-                                                </p>
+                                    return (
+                                        <article key={item.id} className="surface-card rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-all card-hover-lift">
+                                            <div className="flex items-start justify-between gap-4 mb-3">
+                                                <div>
+                                                    <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide mb-1">
+                                                        {item.projectCategory || 'General'}
+                                                    </p>
+                                                    <h3 className="text-lg font-bold text-gray-900">{item.roleTitle}</h3>
+                                                    <p className="text-sm text-gray-600 mt-0.5">in {item.projectTitle}</p>
+                                                </div>
+                                                {Number(item.durationHours) > 0 ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+                                                        <Clock3 size={12} />
+                                                        {item.durationHours}h
+                                                    </span>
+                                                ) : null}
                                             </div>
 
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleApply(item)}
-                                                    disabled={Number(item.spots) < 1 || applyingItemId === String(item.id)}
-                                                    className="px-3 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                                                >
-                                                    {Number(item.spots) < 1
-                                                        ? 'Closed'
-                                                        : applyingItemId === String(item.id)
-                                                            ? 'Applying...'
-                                                            : 'Apply'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => navigate(`/project/${item.projectId}`)}
-                                                    className="px-3 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                                >
-                                                    View Project
-                                                </button>
+                                            <p className="text-sm text-gray-600 line-clamp-3 mb-4">
+                                                {item.projectDescription}
+                                            </p>
+
+                                            <div className="flex flex-wrap gap-2 mb-4">
+                                                {(item.skills || []).map((skill, idx) => (
+                                                    <span
+                                                        key={`${item.id}-${skill}-${idx}`}
+                                                        className="px-2 py-1 text-xs font-medium rounded-md bg-gray-50 border border-gray-200 text-gray-700"
+                                                    >
+                                                        {skill}
+                                                    </span>
+                                                ))}
                                             </div>
-                                        </div>
-                                    </article>
-                                ))}
+
+                                            <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                                                <div className="text-xs text-gray-500 space-y-1">
+                                                    <p>Posted by {item.owner?.name || 'Project Owner'}</p>
+                                                    <p className="inline-flex items-center gap-1">
+                                                        <Users size={12} />
+                                                        {item.spots} spot{item.spots > 1 ? 's' : ''} open
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    {isApplied ? (
+                                                        <span className="px-3 py-2 text-sm font-semibold rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700">
+                                                            Applied
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleApply(item)}
+                                                            disabled={!canApply || isClosed || isApplying}
+                                                            className="btn-primary px-3 py-2 text-sm bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        >
+                                                            {isClosed
+                                                                ? 'Closed'
+                                                                : isApplying
+                                                                    ? 'Applying...'
+                                                                    : !canApply
+                                                                        ? 'Unavailable'
+                                                                        : 'Apply'}
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate(`/project/${item.projectId}`)}
+                                                        className="btn-secondary px-3 py-2 text-sm"
+                                                    >
+                                                        View Project
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}

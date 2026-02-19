@@ -87,24 +87,24 @@ const TopBar = ({ onMenuClick }) => {
     }, [displayName]);
 
     return (
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 2xl:px-10">
+        <header className="relative z-30 h-16 bg-white/82 backdrop-blur-xl border-b border-slate-200/80 flex items-center justify-between px-4 lg:px-8 2xl:px-10 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.65)]">
             <div className="flex items-center gap-4">
                 <button
                     onClick={onMenuClick}
-                    className="lg:hidden text-gray-500 hover:text-gray-700"
+                    className="lg:hidden text-slate-500 hover:text-slate-800"
                 >
                     <Menu size={24} />
                 </button>
 
                 {/* Search */}
                 <form onSubmit={handleSubmit} className="hidden md:flex relative items-center">
-                    <Search className="absolute left-3 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 text-slate-400 w-4 h-4" />
                     <input
                         type="text"
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
                         placeholder="Search teammates, projects, skills..."
-                        className="pl-10 pr-4 py-2 w-64 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="pl-10 pr-4 py-2.5 w-72 bg-white border border-slate-200 rounded-xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-200 transition-all"
                     />
                 </form>
             </div>
@@ -114,19 +114,19 @@ const TopBar = ({ onMenuClick }) => {
                 <NotificationDropdown />
 
                 {/* User Profile */}
-                <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
                     <div className="text-right hidden md:block">
-                        <div className="text-sm font-medium text-gray-900">{displayName}</div>
-                        <div className="text-xs text-gray-500">{displayRole}</div>
+                        <div className="text-sm font-semibold text-slate-900">{displayName}</div>
+                        <div className="text-xs text-slate-500">{displayRole}</div>
                     </div>
                     {avatarUrl ? (
                         <img
                             src={avatarUrl}
                             alt={displayName}
-                            className="w-8 h-8 rounded-full border border-gray-200 object-cover"
+                            className="w-9 h-9 rounded-full border border-slate-200 object-cover shadow-sm"
                         />
                     ) : (
-                        <div className="w-8 h-8 rounded-full border border-gray-200 bg-blue-50 text-blue-700 text-xs font-semibold flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold flex items-center justify-center">
                             {initials}
                         </div>
                     )}

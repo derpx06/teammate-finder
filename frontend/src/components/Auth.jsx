@@ -80,10 +80,10 @@ const Auth = () => {
     };
 
     return (
-        <div className="min-h-screen flex bg-gray-50">
+        <div className="auth-shell min-h-screen flex">
             {/* Left Side - Branding (Hidden on mobile) */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gray-900 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-indigo-900/40 z-10" />
+            <div className="hidden lg:flex lg:w-1/2 bg-slate-950 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-cyan-900/35 z-10" />
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-30" />
 
                 <div className="relative z-20 flex flex-col justify-between w-full p-12 text-white">
@@ -114,7 +114,7 @@ const Auth = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-100"
+                    className="auth-panel w-full max-w-md rounded-2xl p-8"
                 >
                     <div className="text-center mb-8">
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -134,7 +134,7 @@ const Auth = () => {
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} focus:border-transparent outline-none transition-all placeholder-gray-400`}
+                                    className={`field-input w-full pl-10 pr-4 py-3 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                                     placeholder="you@example.com"
                                 />
                             </div>
@@ -149,7 +149,7 @@ const Auth = () => {
                                     type={showPassword ? 'text' : 'password'}
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    className={`w-full pl-10 pr-12 py-3 rounded-xl border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} focus:border-transparent outline-none transition-all placeholder-gray-400`}
+                                    className={`field-input w-full pl-10 pr-12 py-3 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                                     placeholder="••••••••"
                                 />
                                 <button
@@ -178,7 +178,7 @@ const Auth = () => {
                                             type="password"
                                             value={formData.confirmPassword}
                                             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                            className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-blue-500'} focus:border-transparent outline-none transition-all placeholder-gray-400`}
+                                            className={`field-input w-full pl-10 pr-4 py-3 ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
                                             placeholder="••••••••"
                                         />
                                     </div>
@@ -198,7 +198,7 @@ const Auth = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex items-center justify-center py-3 px-4 rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg shadow-blue-500/30 font-medium text-lg disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="btn-primary w-full py-3 px-4 text-lg disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -226,7 +226,7 @@ const Auth = () => {
                             <button
                                 type="button"
                                 onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}
-                                className="flex items-center justify-center px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                                className="btn-secondary flex items-center justify-center px-4 py-2"
                             >
                                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2" />
                                 <span className="font-medium text-gray-700">Google</span>
@@ -234,7 +234,7 @@ const Auth = () => {
                             <button
                                 type="button"
                                 onClick={() => window.location.href = 'http://localhost:5000/api/auth/github'}
-                                className="flex items-center justify-center px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                                className="btn-secondary flex items-center justify-center px-4 py-2"
                             >
                                 <Github className="h-5 w-5 mr-2 text-gray-900" />
                                 <span className="font-medium text-gray-700">GitHub</span>

@@ -113,7 +113,7 @@ const ProfileProjectRecommendations = ({ userId = '', userSkills = [] }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <div className="surface-card rounded-2xl p-6">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
@@ -163,7 +163,7 @@ const ProfileProjectRecommendations = ({ userId = '', userSkills = [] }) => {
             const isApplied = Boolean(appliedMap[applyKey]);
 
             return (
-              <div key={item.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3.5">
+              <div key={item.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3.5 card-hover-lift">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide">
@@ -208,7 +208,7 @@ const ProfileProjectRecommendations = ({ userId = '', userSkills = [] }) => {
                     <button
                       type="button"
                       onClick={() => navigate(`/project/${item.projectId}`)}
-                      className="px-2.5 py-1.5 text-xs font-semibold rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                      className="btn-secondary px-2.5 py-1.5 text-xs"
                     >
                       View
                     </button>
@@ -216,7 +216,7 @@ const ProfileProjectRecommendations = ({ userId = '', userSkills = [] }) => {
                       type="button"
                       onClick={() => handleApply(item)}
                       disabled={isApplying || isApplied}
-                      className="px-2.5 py-1.5 text-xs font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                      className="btn-primary px-2.5 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
                     >
                       <Briefcase size={12} />
                       {isApplying ? 'Applying...' : isApplied ? 'Applied' : 'Apply'}
@@ -233,4 +233,3 @@ const ProfileProjectRecommendations = ({ userId = '', userSkills = [] }) => {
 };
 
 export default ProfileProjectRecommendations;
-

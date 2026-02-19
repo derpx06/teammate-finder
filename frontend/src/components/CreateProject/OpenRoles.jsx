@@ -16,11 +16,11 @@ const OpenRoles = ({ formData, updateFormData }) => {
     };
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="surface-card p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Open Roles</h2>
 
             {/* Add New Role Form */}
-            <div className="bg-gray-50 p-4 rounded-xl mb-6 space-y-3">
+            <div className="surface-card-muted p-4 mb-6 space-y-3">
                 <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Add New Role</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <input
@@ -28,14 +28,14 @@ const OpenRoles = ({ formData, updateFormData }) => {
                         placeholder="Role Title (e.g. Frontend Dev)"
                         value={newRole.title}
                         onChange={(e) => setNewRole({ ...newRole, title: e.target.value })}
-                        className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="field-input"
                     />
                     <input
                         type="text"
                         placeholder="Required Skills (e.g. React, Node)"
                         value={newRole.skills}
                         onChange={(e) => setNewRole({ ...newRole, skills: e.target.value })}
-                        className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="field-input"
                     />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
@@ -46,7 +46,7 @@ const OpenRoles = ({ formData, updateFormData }) => {
                             placeholder="Spots"
                             value={newRole.spots}
                             onChange={(e) => setNewRole({ ...newRole, spots: parseInt(e.target.value, 10) || 1 })}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="field-input"
                         />
                     </div>
                     <div>
@@ -56,7 +56,7 @@ const OpenRoles = ({ formData, updateFormData }) => {
                             placeholder="Urgency (hours, optional)"
                             value={newRole.durationHours}
                             onChange={(e) => setNewRole({ ...newRole, durationHours: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="field-input"
                         />
                     </div>
                 </div>
@@ -65,7 +65,7 @@ const OpenRoles = ({ formData, updateFormData }) => {
                         type="button"
                         onClick={handleAddRole}
                         disabled={!newRole.title || !newRole.skills}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="btn-primary flex items-center gap-2 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Plus size={16} />
                         Add Role

@@ -49,6 +49,16 @@ function toPercent(value) {
     return `${(numeric * 100).toFixed(1)}%`;
 }
 
+function formatDateRange(startDate, endDate) {
+    const start = String(startDate || '').trim();
+    const end = String(endDate || '').trim();
+
+    if (start && end) return `${start} to ${end}`;
+    if (start) return `Starts ${start}`;
+    if (end) return `Target ${end}`;
+    return 'Timeline flexible';
+}
+
 function toProjectPayloadFromPlan(plan = {}) {
     const roles = (Array.isArray(plan?.roles) ? plan.roles : []).map((role) => ({
         title: String(role?.title || '').trim(),
@@ -364,89 +374,104 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
     };
 
     return (
-        <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-50">
+        <>
+            {isOpen ? (
+                <button
+                    type="button"
+                    aria-label="Close Virtual CTO panel"
+                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-[1px]"
+                    onClick={() => setIsOpen(false)}
+                />
+            ) : null}
+
+            <div className={`fixed z-50 ${isOpen
+                ? 'inset-x-2 top-2 bottom-2 sm:inset-auto sm:bottom-5 sm:right-5'
+                : 'bottom-4 right-4 sm:bottom-5 sm:right-5'
+                }`}>
             {!isOpen ? (
                 <div className="flex flex-col items-end gap-2">
-                    <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 shadow-sm text-[11px] text-slate-600">
+                    <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 border border-slate-200 shadow-sm text-[11px] text-slate-600">
                         <Sparkles size={12} className="text-blue-600" />
                         AI project architect
                     </div>
                     <button
                         type="button"
                         onClick={() => setIsOpen(true)}
-                        className="group relative flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-slate-900 to-blue-900 text-white shadow-[0_12px_35px_-16px_rgba(15,23,42,0.85)] hover:from-slate-800 hover:to-blue-800 transition-all"
+                        aria-label="Open Virtual CTO"
+                        className="group relative flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[linear-gradient(120deg,#1d4ed8_0%,#0f766e_100%)] text-white shadow-[0_16px_36px_-18px_rgba(8,47,73,0.55)] hover:brightness-105 transition-all"
                     >
-                        <span className="absolute -top-1.5 -right-1.5 text-[10px] font-semibold bg-emerald-500 text-emerald-950 px-1.5 py-0.5 rounded-full border border-emerald-300">
+                        <span className="absolute -top-1.5 -right-1.5 text-[10px] font-semibold bg-emerald-300 text-emerald-950 px-1.5 py-0.5 rounded-full border border-emerald-100">
                             LIVE
                         </span>
-                        <span className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center">
+                        <span className="w-8 h-8 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center">
                             <MessageSquareText size={16} />
                         </span>
                         <div className="text-left">
                             <div className="text-sm font-semibold leading-tight">Virtual CTO</div>
-                            <div className="text-[11px] text-blue-100 leading-tight">Architect my project</div>
+                            <div className="text-[11px] text-blue-50 leading-tight">Architect my project</div>
                         </div>
                     </button>
                 </div>
             ) : (
-                <div className="w-[390px] max-w-[calc(100vw-1rem)] h-[82vh] sm:h-[620px] bg-white border border-slate-200 rounded-3xl shadow-[0_24px_55px_-24px_rgba(15,23,42,0.55)] flex flex-col overflow-hidden">
-                    <div className="px-4 py-3.5 bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white flex items-center justify-between border-b border-white/10">
+                <div className="h-full w-full bg-white/96 border border-slate-200/90 rounded-[1.25rem] sm:rounded-3xl shadow-[0_28px_58px_-24px_rgba(15,23,42,0.5)] flex flex-col overflow-hidden backdrop-blur-xl sm:w-[430px] sm:max-w-[calc(100vw-2rem)] sm:h-[min(84vh,700px)]">
+                    <div className="px-4 sm:px-5 py-3.5 sm:py-4 bg-[linear-gradient(120deg,#0f172a_0%,#1e40af_56%,#0891b2_100%)] text-white flex items-center justify-between border-b border-white/15">
                         <div className="flex items-center gap-2.5">
-                            <span className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
+                            <span className="w-9 h-9 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center">
                                 <Bot size={17} />
                             </span>
                             <div>
                                 <div className="text-sm font-semibold leading-tight">Virtual CTO</div>
-                                <div className="text-[11px] text-blue-100 leading-tight">
+                                <div className="text-[11px] text-blue-100/95 leading-tight">
                                     One sentence to complete project plan
                                 </div>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-400/15 text-emerald-200 text-[10px] border border-emerald-300/25">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
-                                Ready
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-400/18 text-emerald-100 text-[10px] border border-emerald-200/35">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-200" />
+                                AI Online
                             </span>
                             <button
                                 type="button"
                                 onClick={() => setIsOpen(false)}
-                                className="w-8 h-8 rounded-lg border border-white/15 text-blue-100 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center"
+                                aria-label="Collapse Virtual CTO panel"
+                                className="w-8 h-8 rounded-lg border border-white/20 text-blue-100 hover:text-white hover:bg-white/15 transition-colors flex items-center justify-center"
                             >
                                 <ChevronDown size={16} />
                             </button>
                         </div>
                     </div>
 
-                    <div className="px-4 py-2.5 border-b border-slate-200 bg-slate-50/70">
+                    <div className="px-4 sm:px-5 py-2.5 border-b border-slate-200 bg-gradient-to-r from-sky-50/70 to-indigo-50/50">
                         <div className="text-[11px] text-slate-600">
                             Describe your idea. I will generate title, pitch, stack, hiring roles, and teammate recommendations.
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3 bg-gradient-to-b from-slate-50 to-white">
+                    <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 space-y-3 bg-[radial-gradient(circle_at_100%_0%,rgba(219,234,254,0.5),transparent_42%),radial-gradient(circle_at_0%_100%,rgba(207,250,254,0.36),transparent_46%),linear-gradient(180deg,#f8fbff_0%,#ffffff_45%)]">
                         {messages.map((message) => (
                             <div
                                 key={message.id}
-                                className={`flex gap-2.5 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                className={`flex gap-2 sm:gap-2.5 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 {message.role !== 'user' ? (
-                                    <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center shrink-0 mt-0.5">
+                                    <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center shrink-0 mt-0.5">
                                         <Bot size={14} />
                                     </span>
                                 ) : null}
 
                                 <div
-                                    className={`max-w-[84%] rounded-2xl px-3 py-2.5 text-sm ${message.role === 'user'
-                                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
+                                    className={`max-w-[91%] sm:max-w-[84%] rounded-2xl px-3 sm:px-3.5 py-2.5 text-[13px] sm:text-sm ${message.role === 'user'
+                                        ? 'bg-[linear-gradient(120deg,#2563eb_0%,#0ea5e9_100%)] text-white shadow-[0_14px_24px_-16px_rgba(37,99,235,0.95)]'
                                         : message.isError
                                             ? 'bg-red-50 text-red-700 border border-red-200 shadow-sm'
-                                            : 'bg-white text-slate-800 border border-slate-200 shadow-sm'
+                                            : 'bg-white/96 text-slate-800 border border-slate-200 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.45)]'
                                         }`}
                                 >
                                     <p className="whitespace-pre-wrap">{message.text}</p>
 
                                     {message.plan ? (
-                                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2.5">
+                                        <div className="mt-3 rounded-xl border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-2.5 sm:p-3 space-y-2.5">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="text-xs font-semibold text-slate-900">
                                                     {message.plan.title}
@@ -460,13 +485,13 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                                 <p className="text-[11px] text-slate-600">{message.plan.summary}</p>
                                             ) : null}
 
-                                            <div className="grid grid-cols-2 gap-1.5">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                                                 <div className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[10px] text-slate-700">
                                                     <div className="inline-flex items-center gap-1">
                                                         <Layers3 size={11} className="text-blue-600" />
                                                         Roles
                                                     </div>
-                                                    <div className="font-semibold text-slate-900 text-[11px]">
+                                                    <div className="font-semibold text-slate-900 text-[11px] sm:text-[12px]">
                                                         {(message.plan.roles || []).length}
                                                     </div>
                                                 </div>
@@ -475,7 +500,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                                         <BarChart3 size={11} className="text-blue-600" />
                                                         Skills
                                                     </div>
-                                                    <div className="font-semibold text-slate-900 text-[11px]">
+                                                    <div className="font-semibold text-slate-900 text-[11px] sm:text-[12px]">
                                                         {(message.plan.requiredSkills || []).length}
                                                     </div>
                                                 </div>
@@ -484,7 +509,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                                         <Users2 size={11} className="text-blue-600" />
                                                         Candidates
                                                     </div>
-                                                    <div className="font-semibold text-slate-900 text-[11px]">
+                                                    <div className="font-semibold text-slate-900 text-[11px] sm:text-[12px]">
                                                         {(message.teammates || []).length}
                                                     </div>
                                                 </div>
@@ -493,7 +518,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                                         <Zap size={11} className="text-blue-600" />
                                                         Speed
                                                     </div>
-                                                    <div className="font-semibold text-slate-900 text-[11px]">
+                                                    <div className="font-semibold text-slate-900 text-[11px] sm:text-[12px]">
                                                         {message.meta?.generatedInMs ? `${message.meta.generatedInMs}ms` : 'n/a'}
                                                     </div>
                                                 </div>
@@ -541,10 +566,10 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
 
                                             <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1">
                                                 <CalendarDays size={12} className="text-blue-600" />
-                                                {message.plan.startDate} to {message.plan.endDate}
+                                                {formatDateRange(message.plan.startDate, message.plan.endDate)}
                                             </div>
 
-                                            <details className="group" open>
+                                            <details className="group">
                                                 <summary className="cursor-pointer text-[10px] font-semibold text-slate-600 mb-1 uppercase tracking-wide list-none">
                                                     <span className="group-open:hidden">Show Recommended Stack</span>
                                                     <span className="hidden group-open:inline">Hide Recommended Stack</span>
@@ -617,7 +642,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                             ) : null}
 
                                             {Array.isArray(message.plan.roadmap) && message.plan.roadmap.length > 0 ? (
-                                                <details className="group" open>
+                                                <details className="group">
                                                     <summary className="cursor-pointer text-[10px] font-semibold text-slate-600 mb-1 uppercase tracking-wide list-none">
                                                         <span className="group-open:hidden">Show Roadmap</span>
                                                         <span className="hidden group-open:inline">Hide Roadmap</span>
@@ -785,7 +810,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                 </div>
 
                                 {message.role === 'user' ? (
-                                    <span className="w-7 h-7 rounded-lg bg-slate-200 text-slate-700 border border-slate-300 flex items-center justify-center shrink-0 mt-0.5">
+                                    <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-200 text-slate-700 border border-slate-300 flex items-center justify-center shrink-0 mt-0.5">
                                         <UserRound size={14} />
                                     </span>
                                 ) : null}
@@ -793,11 +818,11 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                         ))}
 
                         {isThinking ? (
-                            <div className="flex justify-start gap-2.5">
-                                <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center shrink-0 mt-0.5">
+                            <div className="flex justify-start gap-2 sm:gap-2.5">
+                                <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center shrink-0 mt-0.5">
                                     <Bot size={14} />
                                 </span>
-                                <div className="max-w-[84%] rounded-2xl px-3 py-2.5 text-sm bg-white text-slate-700 border border-slate-200 shadow-sm">
+                                <div className="max-w-[91%] sm:max-w-[84%] rounded-2xl px-3 sm:px-3.5 py-2.5 text-[13px] sm:text-sm bg-white/96 text-slate-700 border border-slate-200 shadow-[0_12px_24px_-20px_rgba(15,23,42,0.45)]">
                                     <div className="inline-flex items-center gap-1.5">
                                         <Loader2 size={13} className="animate-spin text-blue-600" />
                                         <span>{liveStatus}</span>
@@ -808,11 +833,16 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                         <div ref={scrollRef} />
                     </div>
 
-                    <div className="p-3 border-t border-slate-200 bg-white">
+                    <div className="p-3 sm:p-4 border-t border-slate-200 bg-gradient-to-b from-white to-slate-50/70">
                         <form onSubmit={handleSend}>
-                            <label className="text-[11px] font-medium text-slate-600">
-                                What do you want to build?
-                            </label>
+                            <div className="flex items-center justify-between gap-2">
+                                <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
+                                    What do you want to build?
+                                </label>
+                                <span className="text-[10px] text-slate-500">
+                                    {String(input || '').trim().length} chars
+                                </span>
+                            </div>
                             <div className="mt-1.5 flex items-end gap-2">
                                 <textarea
                                     rows={2}
@@ -820,40 +850,47 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                     onChange={(event) => setInput(event.target.value)}
                                     onKeyDown={handleComposerKeyDown}
                                     placeholder="Example: An app that matches people with weekend hackathon teammates"
-                                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                    className="flex-1 min-h-[44px] max-h-36 px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed"
                                     disabled={isThinking}
                                 />
                                 <button
                                     type="submit"
                                     disabled={!canSend}
-                                    className="h-[42px] w-[42px] rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
+                                    className="h-[44px] min-w-[44px] px-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                                 >
                                     {isThinking ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                                    <span className="hidden sm:inline text-xs font-semibold">Send</span>
                                 </button>
                             </div>
                         </form>
 
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                            {STARTER_PROMPTS.map((prompt) => (
-                                <button
-                                    key={prompt}
-                                    type="button"
-                                    onClick={() => handleStarterPrompt(prompt)}
-                                    disabled={isThinking}
-                                    className="text-[10px] px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-60"
-                                >
-                                    {prompt}
-                                </button>
-                            ))}
+                        <div className="mt-2.5">
+                            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                Try a starter idea
+                            </div>
+                            <div className="flex gap-1.5 overflow-x-auto pb-1 pr-1">
+                                {STARTER_PROMPTS.map((prompt) => (
+                                    <button
+                                        key={prompt}
+                                        type="button"
+                                        onClick={() => handleStarterPrompt(prompt)}
+                                        disabled={isThinking}
+                                        className="shrink-0 text-[10px] px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-700 transition-colors disabled:opacity-60"
+                                    >
+                                        {prompt}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
+            </div>
             <TeammateDetailsModal
                 user={selectedTeammate}
                 onClose={() => setSelectedTeammate(null)}
             />
-        </div>
+        </>
     );
 };
 

@@ -5,7 +5,7 @@ const times = ['Morning', 'Afternoon', 'Evening'];
 
 const AvailabilityCalendar = ({ availability }) => {
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
             <h3 className="font-bold text-gray-900 mb-6">Weekly Availability</h3>
 
             <div className="space-y-4">

@@ -108,7 +108,7 @@ const NotificationDropdown = () => {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-all focus:outline-none"
+                className="relative p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all focus:outline-none"
             >
                 <Bell size={20} />
                 {unreadCount > 0 && (
@@ -123,13 +123,13 @@ const NotificationDropdown = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 origin-top-right"
+                        className="absolute right-0 mt-2 w-80 md:w-96 bg-white/95 backdrop-blur-xl rounded-xl shadow-xl border border-slate-200 overflow-hidden z-[70] origin-top-right"
                     >
-                        <div className="px-4 py-3 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                        <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
                             <h3 className="font-semibold text-gray-900">Notifications</h3>
                             <button
                                 onClick={handleMarkAllRead}
-                                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                className="btn-ghost text-xs text-blue-700 px-2 py-1"
                             >
                                 Mark all as read
                             </button>
@@ -153,7 +153,7 @@ const NotificationDropdown = () => {
                             )}
                         </div>
 
-                        <div className="p-2 border-t border-gray-50 bg-gray-50/50">
+                        <div className="p-2 border-t border-slate-100 bg-slate-50/60">
                             <button
                                 onClick={handleViewAll}
                                 className="w-full py-2 text-sm text-center text-gray-600 hover:text-blue-600 font-medium rounded-lg hover:bg-white transition-all"

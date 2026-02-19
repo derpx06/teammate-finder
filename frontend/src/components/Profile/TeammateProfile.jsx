@@ -13,6 +13,11 @@ const TeammateProfile = () => {
         () => 'https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg',
         []
     );
+    const normalizeUrl = (value) => {
+        const trimmed = String(value || '').trim();
+        if (!trimmed) return '';
+        return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    };
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -62,8 +67,8 @@ const TeammateProfile = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="max-w-5xl mx-auto space-y-6 page-shell">
+            <div className="surface-card rounded-2xl p-6">
                 <div className="flex flex-col md:flex-row gap-5">
                     <img
                         src={profile.avatar || fallbackAvatar}
@@ -107,14 +112,14 @@ const TeammateProfile = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="surface-card rounded-2xl p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-2">Bio</h2>
                 <p className="text-sm text-gray-600 whitespace-pre-line">
                     {profile.bio || 'No bio added yet.'}
                 </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="surface-card rounded-2xl p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Skills</h2>
                 <div className="flex flex-wrap gap-2">
                     {(profile.skills || []).length ? (
@@ -131,6 +136,64 @@ const TeammateProfile = () => {
                     )}
                 </div>
             </div>
+
+            {(profile.website || profile?.socialLinks?.linkedin || profile?.socialLinks?.twitter || profile?.socialLinks?.portfolio || profile?.socialLinks?.other) ? (
+                <div className="surface-card rounded-2xl p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-3">Links</h2>
+                    <div className="flex flex-wrap gap-2">
+                        {profile.website ? (
+                            <a
+                                href={normalizeUrl(profile.website)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                                Website
+                            </a>
+                        ) : null}
+                        {profile?.socialLinks?.linkedin ? (
+                            <a
+                                href={normalizeUrl(profile.socialLinks.linkedin)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                            >
+                                LinkedIn
+                            </a>
+                        ) : null}
+                        {profile?.socialLinks?.twitter ? (
+                            <a
+                                href={normalizeUrl(profile.socialLinks.twitter)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 transition-colors"
+                            >
+                                X / Twitter
+                            </a>
+                        ) : null}
+                        {profile?.socialLinks?.portfolio ? (
+                            <a
+                                href={normalizeUrl(profile.socialLinks.portfolio)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            >
+                                Portfolio
+                            </a>
+                        ) : null}
+                        {profile?.socialLinks?.other ? (
+                            <a
+                                href={normalizeUrl(profile.socialLinks.other)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 text-xs font-semibold rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                            >
+                                Other
+                            </a>
+                        ) : null}
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 };
