@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Loader2, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Search, Loader2, Sparkles, Users, Filter, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import FilterSidebar from './FilterSidebar';
 import TeammateCard from './TeammateCard';
 import TeammateDetailsModal from './TeammateDetailsModal';
 import ComponentErrorBoundary from '../common/ComponentErrorBoundary';
 import { API_BASE_URL } from '../../config/api';
-
 
 const FindTeammates = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -15,7 +14,7 @@ const FindTeammates = () => {
     const [filters, setFilters] = useState({
         skills: [],
         availability: [],
-        experience: []
+        experience: [],
     });
     const [teammates, setTeammates] = useState([]);
     const [semanticResults, setSemanticResults] = useState([]);
@@ -80,8 +79,8 @@ const FindTeammates = () => {
 
             const data = await response.json();
             setTeammates(data);
-        } catch (err) {
-            console.error('Error fetching teammates:', err);
+        } catch (requestError) {
+            console.error('Error fetching teammates:', requestError);
             setError('Failed to load teammates. Please try again later.');
         } finally {
             setLoading(false);
@@ -163,7 +162,6 @@ const FindTeammates = () => {
             setSemanticLoading(false);
         }
     }, []);
-
 
     const handleSemanticSearch = async (event) => {
         event.preventDefault();
@@ -296,7 +294,6 @@ const FindTeammates = () => {
         }
     }, [updateFollowDataInList]);
 
-    // Debounce search
     useEffect(() => {
         const normalizedQuery = searchQuery.trim();
         if (isNaturalLanguageQuery(normalizedQuery)) {
@@ -310,7 +307,6 @@ const FindTeammates = () => {
         return () => clearTimeout(timer);
     }, [fetchTeammates, isNaturalLanguageQuery, searchQuery]);
 
-    // Auto-run semantic search when a natural-language query arrives from URL/global search.
     useEffect(() => {
         const normalizedQuery = searchQuery.trim();
         if (!isNaturalLanguageQuery(normalizedQuery)) {
@@ -340,140 +336,211 @@ const FindTeammates = () => {
 
     const displayedTeammates = isSemanticMode ? semanticResults : teammates;
     const isLoadingTeammates = isSemanticMode ? semanticLoading : loading;
+    const activeFilterCount =
+        filters.skills.length + filters.availability.length + filters.experience.length;
+
+    const statusBanners = useMemo(
+        () => [
+            connectSuccess
+                ? {
+                    id: 'connect-success',
+                    text: connectSuccess,
+                    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                }
+                : null,
+            connectError
+                ? {
+                    id: 'connect-error',
+                    text: connectError,
+                    className: 'border-rose-200 bg-rose-50 text-rose-700',
+                }
+                : null,
+            followSuccess
+                ? {
+                    id: 'follow-success',
+                    text: followSuccess,
+                    className: 'border-amber-200 bg-amber-50 text-amber-800',
+                }
+                : null,
+            followError
+                ? {
+                    id: 'follow-error',
+                    text: followError,
+                    className: 'border-rose-200 bg-rose-50 text-rose-700',
+                }
+                : null,
+        ].filter(Boolean),
+        [connectSuccess, connectError, followSuccess, followError]
+    );
 
     return (
-        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Find Teammates</h1>
-                <p className="text-gray-500 mt-2">Discover talented developers, designers, and creators for your next project.</p>
-            </div>
+        <div className="mx-auto max-w-7xl 2xl:max-w-screen-2xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+            <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-[linear-gradient(120deg,#0f172a_0%,#1e293b_56%,#075985_130%)] px-5 py-6 text-white shadow-[0_24px_56px_-38px_rgba(15,23,42,0.9)] sm:px-7 sm:py-8">
+                <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-300/30 blur-3xl" />
+                <div className="absolute -bottom-24 left-16 h-56 w-56 rounded-full bg-blue-400/25 blur-3xl" />
 
-            <section className="mb-8 bg-white border border-blue-100 rounded-2xl shadow-sm p-4 sm:p-5">
-                <div className="flex items-center gap-2 text-blue-700 mb-3">
-                    <Sparkles size={18} />
-                    <h2 className="text-base sm:text-lg font-bold">AI Semantic Search</h2>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                    Search by meaning. Example: &quot;Need a crypto expert for smart contracts&quot;.
-                </p>
+                <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-2xl">
+                        <p className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-100">
+                            <Sparkles size={13} />
+                            Talent Discovery
+                        </p>
+                        <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">Find Teammates</h1>
+                        <p className="mt-2 text-sm text-slate-200 sm:text-base">
+                            Discover developers, designers, and builders with classic filtering or AI semantic matching.
+                        </p>
 
-                <form onSubmit={handleSemanticSearch} className="flex flex-col sm:flex-row gap-3">
-                    <input
-                        type="text"
-                        value={semanticQuery}
-                        onChange={(event) => setSemanticQuery(event.target.value)}
-                        placeholder="Describe the teammate you need..."
-                        className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                        type="submit"
-                        disabled={semanticLoading}
-                        className="px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed font-medium"
-                    >
-                        {semanticLoading ? 'Searching...' : 'Smart Search'}
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={clearSemanticSearch}
-                        className="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
-                    >
-                        Clear
-                    </button>
-                </form>
-
-                {semanticError ? (
-                    <div className="mt-3 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
-                        {semanticError}
-                    </div>
-                ) : null}
-
-                {isSemanticMode ? (
-                    <div className="mt-3 space-y-1">
-                        <div className="text-xs font-medium text-blue-700">
-                            Showing AI-ranked teammate matches.
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs sm:text-sm">
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {displayedTeammates.length} teammate{displayedTeammates.length !== 1 ? 's' : ''}
+                            </span>
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active
+                            </span>
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                Mode: {isSemanticMode ? 'AI ranked' : 'Standard'}
+                            </span>
                         </div>
-                        {semanticMeta?.indexedUsers === 0 ? (
-                            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 inline-block">
-                                No vector-indexed profiles yet. Showing fallback matches.
-                            </div>
-                        ) : semanticMeta?.usedFallback ? (
-                            <div className="text-xs text-gray-600">
-                                Filled remaining results with keyword fallback because some users are not indexed yet.
-                            </div>
-                        ) : null}
                     </div>
-                ) : null}
+
+                    <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-slate-100">
+                        Natural-language search is supported in both search bars.
+                    </div>
+                </div>
             </section>
 
-            {connectSuccess ? (
-                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 rounded-xl p-3 text-sm">
-                    {connectSuccess}
-                </div>
-            ) : null}
-
-            {connectError ? (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
-                    {connectError}
-                </div>
-            ) : null}
-
-            {followSuccess ? (
-                <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-sm">
-                    {followSuccess}
-                </div>
-            ) : null}
-
-            {followError ? (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
-                    {followError}
-                </div>
-            ) : null}
-
-            <div className="grid lg:grid-cols-4 xl:grid-cols-5 gap-8">
-                {/* Sidebar */}
+            <div className="grid gap-6 lg:grid-cols-4 xl:grid-cols-5">
                 <div className="lg:col-span-1 xl:col-span-1">
                     <FilterSidebar filters={filters} setFilters={setFilters} />
                 </div>
 
-                {/* Main Content */}
-                <div className="lg:col-span-3 xl:col-span-4">
-                    {/* Search Bar */}
-                    <form onSubmit={handlePrimarySearchSubmit} className="mb-6 space-y-2">
-                        <div className="relative flex gap-2">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <div className="space-y-5 lg:col-span-3 xl:col-span-4">
+                    <section className="rounded-2xl border border-blue-100 bg-white/95 p-4 shadow-sm sm:p-5">
+                        <div className="mb-3 flex items-center gap-2 text-blue-700">
+                            <Sparkles size={17} />
+                            <h2 className="text-base font-bold sm:text-lg">AI Semantic Search</h2>
+                        </div>
+                        <p className="mb-4 text-sm text-slate-600">
+                            Search by intent. Example: &quot;Need a crypto expert for smart contracts&quot;.
+                        </p>
+
+                        <form onSubmit={handleSemanticSearch} className="flex flex-col gap-3 sm:flex-row">
                             <input
                                 type="text"
-                                placeholder="Search by name/skill or natural language (e.g., need a Web3 teammate)..."
-                                value={searchQuery}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                                value={semanticQuery}
+                                onChange={(event) => setSemanticQuery(event.target.value)}
+                                placeholder="Describe the teammate you need..."
+                                className="h-11 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                             />
                             <button
                                 type="submit"
-                                className="px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors text-sm font-medium"
+                                disabled={semanticLoading}
+                                className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
                             >
-                                Search
+                                {semanticLoading ? 'Searching...' : 'Smart Search'}
                             </button>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                            Natural language is supported in this search bar and the AI search box above.
-                        </div>
-                    </form>
 
-                    {/* Results Grid */}
+                            <button
+                                type="button"
+                                onClick={clearSemanticSearch}
+                                className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                                Clear
+                            </button>
+                        </form>
+
+                        {semanticError ? (
+                            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                                {semanticError}
+                            </div>
+                        ) : null}
+
+                        {isSemanticMode ? (
+                            <div className="mt-3 space-y-1.5 text-xs">
+                                <div className="font-medium text-blue-700">Showing AI-ranked teammate matches.</div>
+                                {semanticMeta?.indexedUsers === 0 ? (
+                                    <div className="inline-block rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">
+                                        No vector-indexed profiles yet. Showing fallback matches.
+                                    </div>
+                                ) : semanticMeta?.usedFallback ? (
+                                    <div className="text-slate-600">
+                                        Filled remaining results with keyword fallback because some users are not indexed yet.
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+                    </section>
+
+                    <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm sm:p-5">
+                        <form onSubmit={handlePrimarySearchSubmit} className="space-y-2">
+                            <div className="relative flex gap-2">
+                                <Search
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                                    size={18}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name/skill or natural language (e.g., need a Web3 teammate)..."
+                                    value={searchQuery}
+                                    onChange={(event) => handleSearchChange(event.target.value)}
+                                    className="h-11 w-full rounded-xl border border-slate-200 bg-white py-2 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                                />
+                                <button
+                                    type="submit"
+                                    className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                >
+                                    Search
+                                </button>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1">
+                                    <Users size={12} />
+                                    {displayedTeammates.length} results
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1">
+                                    <Filter size={12} />
+                                    {activeFilterCount} filters active
+                                </span>
+                                {searchQuery.trim() ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSearchChange('')}
+                                        className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 font-medium text-slate-600 transition hover:bg-slate-200"
+                                    >
+                                        <X size={12} />
+                                        Clear query
+                                    </button>
+                                ) : null}
+                            </div>
+                        </form>
+                    </section>
+
+                    {statusBanners.length > 0 ? (
+                        <div className="space-y-2">
+                            {statusBanners.map((banner) => (
+                                <div
+                                    key={banner.id}
+                                    className={`rounded-xl border p-3 text-sm ${banner.className}`}
+                                >
+                                    {banner.text}
+                                </div>
+                            ))}
+                        </div>
+                    ) : null}
+
                     {isLoadingTeammates ? (
-                        <div className="flex justify-center py-20">
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <div className="flex min-h-[34vh] items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90">
+                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                         </div>
                     ) : (isSemanticMode ? semanticError : error) ? (
-                        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-center">
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center text-rose-700">
                             {isSemanticMode ? semanticError : error}
                         </div>
                     ) : (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                             {displayedTeammates.length > 0 ? (
-                                displayedTeammates.map(user => (
+                                displayedTeammates.map((user) => (
                                     <TeammateCard
                                         key={user._id || user.id || user.email}
                                         user={user}
@@ -487,11 +554,11 @@ const FindTeammates = () => {
                                     />
                                 ))
                             ) : (
-                                <div className="col-span-full text-center py-12 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                    <p className="text-lg font-medium text-gray-900">
+                                <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white/90 px-6 py-12 text-center text-slate-500">
+                                    <p className="text-lg font-semibold text-slate-900">
                                         {isSemanticMode ? 'No semantic matches found' : 'No teammates found'}
                                     </p>
-                                    <p className="mt-1">
+                                    <p className="mt-1 text-sm">
                                         {isSemanticMode
                                             ? 'Try a broader AI query like "full-stack startup builder".'
                                             : 'Try adjusting your filters or search query.'}
@@ -507,15 +574,15 @@ const FindTeammates = () => {
                 resetKey={selectedTeammate?._id || selectedTeammate?.id || 'none'}
                 fallback={
                     selectedTeammate ? (
-                        <div className="fixed inset-0 z-50 bg-gray-900/60 p-4 sm:p-6 flex items-center justify-center">
-                            <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-100 p-6">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">Unable to open teammate profile</h3>
-                                <p className="text-sm text-gray-600 mb-4">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 sm:p-6">
+                            <div className="w-full max-w-xl rounded-2xl border border-gray-100 bg-white p-6 shadow-2xl">
+                                <h3 className="mb-2 text-lg font-bold text-gray-900">Unable to open teammate profile</h3>
+                                <p className="mb-4 text-sm text-gray-600">
                                     Some profile data is invalid. Please close and try another teammate.
                                 </p>
                                 <button
                                     onClick={() => setSelectedTeammate(null)}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
                                 >
                                     Close
                                 </button>

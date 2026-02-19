@@ -1,9 +1,40 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Folder, Users, Star, ArrowRight, AlertCircle, TrendingUp, Loader2 } from 'lucide-react';
+import {
+    Folder,
+    Users,
+    Star,
+    ArrowRight,
+    AlertCircle,
+    TrendingUp,
+    Loader2,
+    Sparkles,
+    Plus,
+} from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import TeammateDetailsModal from '../FindTeammates/TeammateDetailsModal';
+
+const getInitials = (value) => {
+    const text = String(value || '').trim();
+    if (!text) return 'U';
+    const parts = text.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+};
+
+const STATUS_CLASSES = {
+    'In Progress': 'border-blue-200 bg-blue-50 text-blue-700',
+    Review: 'border-amber-200 bg-amber-50 text-amber-700',
+    Completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+};
+
+const PROJECT_SWATCHES = [
+    'from-blue-500 to-cyan-500',
+    'from-cyan-500 to-teal-500',
+    'from-indigo-500 to-blue-500',
+    'from-emerald-500 to-cyan-500',
+];
 
 const DashboardHome = () => {
     const navigate = useNavigate();
@@ -44,20 +75,32 @@ const DashboardHome = () => {
             {
                 label: 'Active Projects',
                 value: values.activeProjects ?? 0,
-                icon: <Folder className="text-blue-600" />,
                 trend: `${values.pendingProjects ?? 0} pending`,
+                Icon: Folder,
+                iconClass: 'text-blue-700',
+                iconBg: 'bg-blue-100',
+                chipClass: 'bg-blue-100 text-blue-700',
+                topBar: 'from-blue-600 to-cyan-500',
             },
             {
                 label: 'Project Invites',
                 value: values.pendingInvites ?? 0,
-                icon: <Users className="text-purple-600" />,
-                trend: `${values.suggestedMatches ?? 0} suggested teammates`,
+                trend: `${values.suggestedMatches ?? 0} suggested matches`,
+                Icon: Users,
+                iconClass: 'text-cyan-700',
+                iconBg: 'bg-cyan-100',
+                chipClass: 'bg-cyan-100 text-cyan-700',
+                topBar: 'from-cyan-600 to-teal-500',
             },
             {
                 label: 'Profile Completion',
                 value: `${values.profileCompletion ?? 0}%`,
-                icon: <TrendingUp className="text-green-600" />,
-                trend: `${values.completedProjects ?? 0} completed projects`,
+                trend: `${values.completedProjects ?? 0} completed`,
+                Icon: TrendingUp,
+                iconClass: 'text-emerald-700',
+                iconBg: 'bg-emerald-100',
+                chipClass: 'bg-emerald-100 text-emerald-700',
+                topBar: 'from-emerald-600 to-cyan-500',
             },
         ];
     }, [dashboard]);
@@ -67,24 +110,27 @@ const DashboardHome = () => {
     const skillGaps = dashboard?.skillGaps || { missingSkills: [], impactedProjects: 0 };
     const userName = dashboard?.user?.name || 'Developer';
     const firstName = String(userName).trim().split(' ')[0] || 'Developer';
+    const statsValues = dashboard?.stats || {};
 
     if (loading) {
         return (
-            <div className="min-h-[45vh] flex items-center justify-center text-gray-600">
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                Loading dashboard...
+            <div className="flex min-h-[52vh] items-center justify-center">
+                <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-5 py-3 text-sm font-medium text-slate-600 shadow-sm">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                    Loading dashboard...
+                </div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-700">
                 <div className="font-semibold">Unable to load dashboard</div>
-                <div className="text-sm mt-1">{error}</div>
+                <div className="mt-1 text-sm">{error}</div>
                 <button
                     onClick={fetchDashboard}
-                    className="mt-3 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium"
+                    className="mt-4 rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
                 >
                     Retry
                 </button>
@@ -93,207 +139,283 @@ const DashboardHome = () => {
     }
 
     return (
-        <div className="space-y-8">
-            {/* Welcome Header */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}!</h1>
-                    <p className="text-gray-500">Here&apos;s what&apos;s happening with your projects today.</p>
-                </div>
-                <button
-                    onClick={() => navigate('/create-project')}
-                    className="hidden md:flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                >
-                    <Star className="w-4 h-4 mr-2" />
-                    Create New Project
-                </button>
-            </div>
+        <div className="space-y-7">
+            <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-[linear-gradient(120deg,#0f172a_0%,#1e293b_58%,#0f766e_130%)] p-6 text-white shadow-[0_24px_55px_-38px_rgba(15,23,42,0.9)] sm:p-8">
+                <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-300/25 blur-3xl" />
+                <div className="absolute -bottom-24 left-16 h-52 w-52 rounded-full bg-blue-400/20 blur-3xl" />
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-2xl">
+                        <p className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-100">
+                            <Sparkles size={13} />
+                            Team command center
+                        </p>
+                        <h2 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">
+                            Welcome back, {firstName}.
+                        </h2>
+                        <p className="mt-3 text-sm text-slate-200 sm:text-base">
+                            You have {statsValues.pendingInvites ?? 0} open invite(s), {activeProjects.length} active project(s), and {suggestedMatches.length} fresh teammate recommendation(s).
+                        </p>
+
+                        <div className="mt-5 flex flex-wrap gap-2.5 text-xs sm:text-sm">
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {statsValues.completedProjects ?? 0} projects delivered
+                            </span>
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {statsValues.profileCompletion ?? 0}% profile complete
+                            </span>
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {skillGaps.impactedProjects ?? 0} project(s) impacted by skill gaps
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                        <button
+                            onClick={() => navigate('/create-project')}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                        >
+                            <Plus size={16} />
+                            Create New Project
+                        </button>
+                        <button
+                            onClick={() => navigate('/find-teammates')}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+                        >
+                            <Users size={16} />
+                            Explore Matches
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
                 {stats.map((stat, index) => (
-                    <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 20 }}
+                    <motion.article
+                        key={stat.label}
+                        initial={{ opacity: 0, y: 18 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="p-6 bg-white rounded-xl shadow-sm border border-gray-100"
+                        transition={{ delay: index * 0.08 }}
+                        className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-sm"
                     >
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-gray-50 rounded-lg">{stat.icon}</div>
-                            <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                        <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${stat.topBar}`} />
+                        <div className="mb-5 flex items-start justify-between gap-3">
+                            <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${stat.iconBg}`}>
+                                <stat.Icon className={`h-5 w-5 ${stat.iconClass}`} />
+                            </div>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stat.chipClass}`}>
                                 {stat.trend}
                             </span>
                         </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                        <div className="text-sm text-gray-500">{stat.label}</div>
-                    </motion.div>
+                        <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                        <p className="mt-1 text-sm text-slate-500">{stat.label}</p>
+                    </motion.article>
                 ))}
-            </div>
+            </section>
 
-            {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-3 gap-8">
-                {/* Left Column - Projects (2/3 width) */}
-                <div className="lg:col-span-2 space-y-8">
-                    {/* Active Projects */}
-                    <section>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-gray-900">Active Projects</h2>
+            <section className="grid gap-6 xl:grid-cols-[1.75fr_1fr]">
+                <div className="space-y-6">
+                    <article className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-sm">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+                            <h3 className="text-lg font-bold text-slate-900">Active Projects</h3>
                             <button
                                 type="button"
                                 onClick={() => navigate('/projects')}
-                                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                className="text-sm font-semibold text-blue-700 transition hover:text-blue-800"
                             >
-                                View All
+                                View all
                             </button>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            {activeProjects.length === 0 ? (
-                                <div className="p-6 text-sm text-gray-500">
-                                    No active projects yet. Start one from &quot;Create New Project&quot;.
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-100">
-                                    {activeProjects.map((project) => (
+
+                        {activeProjects.length === 0 ? (
+                            <div className="p-6 text-sm text-slate-500">
+                                No active projects yet. Start one from
+                                {' '}
+                                <button
+                                    onClick={() => navigate('/create-project')}
+                                    className="font-semibold text-blue-700 hover:text-blue-800"
+                                >
+                                    Create New Project
+                                </button>
+                                .
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-slate-100">
+                                {activeProjects.map((project, projectIndex) => {
+                                    const projectId = project.id || project._id;
+                                    const progress = Math.max(0, Math.min(100, Math.round(Number(project.progress) || 0)));
+                                    const projectTitle = String(project.title || 'Untitled Project');
+                                    const projectRole = String(project.role || 'Contributor');
+                                    const projectStatus = String(project.status || 'Planned');
+                                    const statusClass = STATUS_CLASSES[projectStatus] || 'border-slate-200 bg-slate-100 text-slate-600';
+                                    const swatch = PROJECT_SWATCHES[projectIndex % PROJECT_SWATCHES.length];
+
+                                    return (
                                         <div
-                                            key={project.id}
-                                            onClick={() => navigate(`/project/${project.id}`)}
-                                            className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between group cursor-pointer"
+                                            key={projectId || `${projectTitle}-${projectIndex}`}
+                                            onClick={() => projectId && navigate(`/project/${projectId}`)}
+                                            className={`group flex flex-col gap-4 px-5 py-4 transition sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
+                                                projectId ? 'cursor-pointer hover:bg-slate-50/90' : ''
+                                            }`}
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold">
-                                                    {String(project.title || 'P').charAt(0).toUpperCase()}
+                                            <div className="min-w-0 flex items-center gap-3">
+                                                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${swatch} text-sm font-bold text-white`}>
+                                                    {projectTitle.charAt(0).toUpperCase()}
                                                 </div>
-                                                <div>
-                                                    <div className="font-semibold text-gray-900">{project.title}</div>
-                                                    <div className="text-sm text-gray-500">{project.role}</div>
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold text-slate-900 sm:text-base">{projectTitle}</p>
+                                                    <p className="truncate text-xs text-slate-500 sm:text-sm">{projectRole}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-6">
-                                                <div className="hidden sm:block w-32">
-                                                    <div className="flex justify-between text-xs mb-1">
-                                                        <span className="text-gray-500">Progress</span>
-                                                        <span className="text-gray-700 font-medium">{Math.round(Number(project.progress) || 0)}%</span>
+
+                                            <div className="flex items-center gap-3 sm:gap-5">
+                                                <div className="w-36">
+                                                    <div className="mb-1 flex items-center justify-between text-[11px] text-slate-500">
+                                                        <span>Progress</span>
+                                                        <span className="font-semibold text-slate-700">{progress}%</span>
                                                     </div>
-                                                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
                                                         <div
-                                                            className="h-full bg-blue-500 rounded-full"
-                                                            style={{ width: `${Math.round(Number(project.progress) || 0)}%` }}
+                                                            className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-500"
+                                                            style={{ width: `${progress}%` }}
                                                         />
                                                     </div>
                                                 </div>
-                                                <span
-                                                    className={`px-2 py-1 rounded text-xs font-medium ${
-                                                        project.status === 'In Progress'
-                                                            ? 'bg-blue-100 text-blue-700'
-                                                            : project.status === 'Review'
-                                                              ? 'bg-yellow-100 text-yellow-700'
-                                                              : 'bg-gray-100 text-gray-600'
-                                                    }`}
-                                                >
-                                                    {project.status}
+
+                                                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass}`}>
+                                                    {projectStatus}
                                                 </span>
-                                                <button className="text-gray-400 hover:text-blue-600">
-                                                    <ArrowRight size={18} />
-                                                </button>
+
+                                                <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:text-blue-600" />
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </section>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </article>
 
-                    {/* Skill Gap Alerts */}
-                    <section>
-                        <h2 className="text-lg font-bold text-gray-900 mb-4">Skill Gap Alerts</h2>
+                    <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-sm sm:p-6">
+                        <div className="mb-4 flex items-center gap-2">
+                            <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                                <AlertCircle className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900">Skill Gap Alerts</h3>
+                        </div>
+
                         {skillGaps.missingSkills.length > 0 ? (
-                            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
-                                <div>
-                                    <h3 className="font-semibold text-orange-900">
-                                        Missing Skills: {skillGaps.missingSkills.slice(0, 3).join(', ')}
-                                    </h3>
-                                    <p className="text-sm text-orange-700 mt-1">
-                                        {skillGaps.impactedProjects} active project(s) include skill requirements
-                                        you haven&apos;t listed yet.
-                                    </p>
-                                    <button
-                                        onClick={() => navigate('/profile')}
-                                        className="mt-3 text-sm font-medium text-orange-700 hover:text-orange-800 underline"
-                                    >
-                                        Update Profile Skills
-                                    </button>
-                                </div>
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                <p className="font-semibold text-amber-900">
+                                    Missing skills:
+                                    {' '}
+                                    {skillGaps.missingSkills.slice(0, 4).join(', ')}
+                                </p>
+                                <p className="mt-1.5 text-sm text-amber-800">
+                                    {skillGaps.impactedProjects} active project(s) include requirements not listed on your profile.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/profile')}
+                                    className="mt-3 text-sm font-semibold text-amber-800 underline hover:text-amber-900"
+                                >
+                                    Update profile skills
+                                </button>
                             </div>
                         ) : (
-                            <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-800">
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
                                 No skill gaps detected across your active projects.
                             </div>
                         )}
-                    </section>
+                    </article>
                 </div>
 
-                {/* Right Column - Suggestions (1/3 width) */}
-                <div className="space-y-8">
-                    <section>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-gray-900">Suggested Matches</h2>
+                <aside>
+                    <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-sm sm:p-6">
+                        <div className="mb-5 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Suggested Matches</h3>
+                                <p className="text-xs text-slate-500">People likely to fit your projects</p>
+                            </div>
                             <button
                                 onClick={() => navigate('/find-teammates')}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                             >
-                                <ArrowRight size={18} />
+                                <ArrowRight size={16} />
                             </button>
                         </div>
+
                         {suggestedMatches.length === 0 ? (
-                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-sm text-gray-500">
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                                 No teammate suggestions yet. Add more skills to improve matches.
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                {suggestedMatches.map((match, index) => (
-                                    <motion.div
-                                        key={match.id || `${match.name}-${index}`}
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.2 + index * 0.1 }}
-                                        onClick={() =>
-                                            setSelectedTeammate({
-                                                _id: match.id,
-                                                id: match.id,
-                                                name: match.name,
-                                                role: match.role,
-                                                skills: Array.isArray(match.skills) ? match.skills : [],
-                                            })
-                                        }
-                                        className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-bold text-gray-900">{match.name}</h3>
-                                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                                {match.matchLabel || `${match.matchScore || 0}%`}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-gray-500 mb-3">{match.role}</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {(Array.isArray(match.skills) ? match.skills : []).slice(0, 4).map((skill) => (
-                                                <span key={`${match.id}-${skill}`} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
-                                                    {skill}
+                            <div className="space-y-3.5">
+                                {suggestedMatches.map((match, index) => {
+                                    const matchId = match.id || match._id || `${match.name}-${index}`;
+                                    const skillList = Array.isArray(match.skills) ? match.skills : [];
+                                    const label = match.matchLabel || `${match.matchScore || 0}% match`;
+
+                                    return (
+                                        <motion.div
+                                            key={matchId}
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.12 + index * 0.07 }}
+                                            onClick={() =>
+                                                setSelectedTeammate({
+                                                    _id: match.id || match._id,
+                                                    id: match.id || match._id,
+                                                    name: match.name,
+                                                    role: match.role,
+                                                    skills: skillList,
+                                                })
+                                            }
+                                            className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition hover:border-cyan-300 hover:shadow-sm"
+                                        >
+                                            <div className="mb-2 flex items-start justify-between gap-3">
+                                                <div className="min-w-0 flex items-center gap-2.5">
+                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 text-xs font-bold text-blue-700">
+                                                        {getInitials(match.name)}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-semibold text-slate-900">{match.name}</p>
+                                                        <p className="truncate text-xs text-slate-500">{match.role || 'Contributor'}</p>
+                                                    </div>
+                                                </div>
+                                                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                                    {label}
                                                 </span>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {skillList.slice(0, 4).map((skill) => (
+                                                    <span
+                                                        key={`${matchId}-${skill}`}
+                                                        className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-600"
+                                                    >
+                                                        {skill}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         )}
-                    </section>
-                </div>
-            </div>
-            <TeammateDetailsModal
-                user={selectedTeammate}
-                onClose={() => setSelectedTeammate(null)}
-            />
+                    </article>
+
+                    <article className="mt-6 rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-blue-50 p-5">
+                        <div className="flex items-center gap-2 text-cyan-800">
+                            <Star className="h-4 w-4" />
+                            <p className="text-sm font-semibold">Quick tip</p>
+                        </div>
+                        <p className="mt-2 text-sm text-slate-700">
+                            Keep your profile skills updated weekly to improve teammate match quality and get better project recommendations.
+                        </p>
+                    </article>
+                </aside>
+            </section>
+
+            <TeammateDetailsModal user={selectedTeammate} onClose={() => setSelectedTeammate(null)} />
         </div>
     );
 };

@@ -16,13 +16,12 @@ const DashboardLayout = ({ children }) => {
                 const userStr = localStorage.getItem('authUser');
                 if (userStr) {
                     const user = JSON.parse(userStr);
-                    // Check if onboarding is NOT completed
                     if (user && !user.onboardingCompleted) {
                         navigate('/onboarding');
                     }
                 }
             } catch (error) {
-                console.error("Error parsing user data", error);
+                console.error('Error parsing user data', error);
             }
         };
 
@@ -124,15 +123,19 @@ const DashboardLayout = ({ children }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
-            <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(191,219,254,0.4),transparent_32%),radial-gradient(circle_at_84%_12%,rgba(165,243,252,0.35),transparent_34%),linear-gradient(180deg,#f4f8fc_0%,#f8fbff_35%,#fbfdff_100%)]">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
-            <div className="flex-1 flex flex-col min-w-0 lg:pl-64 transition-all duration-300">
-                <TopBar onMenuClick={() => setIsSidebarOpen(true)} />
+            <div className="relative z-10 flex min-h-screen">
+                <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-                <main className="flex-1 p-4 lg:p-8 2xl:p-10 overflow-y-auto">
-                    {children}
-                </main>
+                <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+                    <TopBar onMenuClick={() => setIsSidebarOpen(true)} />
+
+                    <main className="flex-1 overflow-y-auto px-4 pb-6 pt-4 lg:px-8 lg:pb-10 lg:pt-6 2xl:px-10">
+                        {children}
+                    </main>
+                </div>
             </div>
 
             {location.pathname !== '/create-project' ? (

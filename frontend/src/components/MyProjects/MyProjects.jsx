@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Folder, Loader2, Plus } from 'lucide-react';
+import { Folder, Loader2, Plus, Sparkles, Search } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProjectCard from './ProjectCard';
-import ConfirmModal from '../Common/ConfirmModal';
+import ConfirmModal from '../common/ConfirmModal';
 import { API_BASE_URL } from '../../config/api';
 
 const MyProjects = () => {
@@ -21,7 +21,7 @@ const MyProjects = () => {
     const tabs = [
         { id: 'active', label: 'Active Projects' },
         { id: 'pending', label: 'Pending' },
-        { id: 'completed', label: 'Completed' }
+        { id: 'completed', label: 'Completed' },
     ];
 
     useEffect(() => {
@@ -51,6 +51,21 @@ const MyProjects = () => {
 
         fetchProjects();
     }, []);
+
+    const tabCounts = useMemo(
+        () =>
+            projects.reduce(
+                (accumulator, project) => {
+                    const type = String(project.type || '').toLowerCase();
+                    if (type in accumulator) {
+                        accumulator[type] += 1;
+                    }
+                    return accumulator;
+                },
+                { active: 0, pending: 0, completed: 0 }
+            ),
+        [projects]
+    );
 
     const filteredProjects = projects.filter((project) => {
         const matchesTab = project.type === activeTab;
@@ -93,75 +108,114 @@ const MyProjects = () => {
                 throw new Error(data.error || 'Failed to delete project');
             }
 
-            setProjects(prev => prev.filter(p => p.id !== projectToDelete));
+            setProjects((prev) => prev.filter((project) => project.id !== projectToDelete));
             setDeleteModalOpen(false);
             setProjectToDelete(null);
-        } catch (err) {
-            console.error('Delete error:', err);
-            // Silently fail or use a toast notification if available in the future
+        } catch (deleteError) {
+            console.error('Delete error:', deleteError);
         } finally {
             setIsDeleting(false);
         }
     };
 
     return (
-        <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">My Projects</h1>
-                    <p className="text-gray-500 mt-2">Manage and track all your collaborative work.</p>
-                </div>
-                <button
-                    onClick={() => navigate('/create-project')}
-                    className="flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                >
-                    <Plus size={20} className="mr-2" />
-                    New Project
-                </button>
-            </div>
+        <div className="mx-auto max-w-7xl 2xl:max-w-screen-2xl space-y-6">
+            <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-[linear-gradient(120deg,#0f172a_0%,#1e293b_56%,#075985_130%)] px-5 py-6 text-white shadow-[0_24px_56px_-38px_rgba(15,23,42,0.9)] sm:px-7 sm:py-8">
+                <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-300/30 blur-3xl" />
+                <div className="absolute -bottom-24 left-16 h-56 w-56 rounded-full bg-blue-400/25 blur-3xl" />
 
-            {/* Tabs */}
-            <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-xl w-fit mb-8">
-                {tabs.map(tab => (
+                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-2xl">
+                        <p className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-100">
+                            <Sparkles size={13} />
+                            Project Workspace
+                        </p>
+                        <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">My Projects</h1>
+                        <p className="mt-2 text-sm text-slate-200 sm:text-base">
+                            Manage timelines, monitor progress, and keep your collaboration pipeline moving.
+                        </p>
+
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs sm:text-sm">
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {tabCounts.active} active
+                            </span>
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {tabCounts.pending} pending
+                            </span>
+                            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                                {tabCounts.completed} completed
+                            </span>
+                            {searchQuery ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-200/40 bg-cyan-300/15 px-3 py-1.5 text-cyan-100">
+                                    <Search size={12} />
+                                    Filtered by &quot;{searchQuery}&quot;
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
+
                     <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        onClick={() => navigate('/create-project')}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
                     >
-                        {activeTab === tab.id && (
-                            <motion.div
-                                layoutId="activeTab"
-                                className="absolute inset-0 bg-white shadow-sm rounded-lg"
-                                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                            />
-                        )}
-                        <span className="relative z-10">{tab.label}</span>
+                        <Plus size={18} />
+                        New Project
                     </button>
-                ))}
-            </div>
+                </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                activeTab === tab.id
+                                    ? 'text-slate-900'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            {activeTab === tab.id && (
+                                <motion.div
+                                    layoutId="activeProjectTab"
+                                    className="absolute inset-0 rounded-xl border border-slate-200 bg-white shadow-sm"
+                                    transition={{ type: 'spring', bounce: 0.2, duration: 0.55 }}
+                                />
+                            )}
+                            <span className="relative z-10">{tab.label}</span>
+                            <span
+                                className={`relative z-10 rounded-full px-2 py-0.5 text-xs ${
+                                    activeTab === tab.id
+                                        ? 'bg-slate-100 text-slate-700'
+                                        : 'bg-slate-100/80 text-slate-500'
+                                }`}
+                            >
+                                {tabCounts[tab.id]}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </section>
 
             {error ? (
-                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
-                    {error}
-                </div>
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>
             ) : null}
 
             {loading ? (
-                <div className="py-20 flex items-center justify-center text-gray-500">
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                <div className="flex min-h-[32vh] items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm">
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin text-blue-600" />
                     Loading your projects...
                 </div>
             ) : (
-                /* Grid */
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     <AnimatePresence mode="popLayout">
-                        {filteredProjects.map(project => (
+                        {filteredProjects.map((project) => (
                             <motion.div
-                                key={project.id}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
+                                key={project.id || project._id}
+                                initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.97, y: 8 }}
                                 transition={{ duration: 0.2 }}
                                 layout
                             >
@@ -174,11 +228,13 @@ const MyProjects = () => {
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200"
+                            className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white/90 px-6 py-14 text-center"
                         >
-                            <Folder size={48} className="mx-auto mb-4 text-gray-300" />
-                            <p>
-                                {searchQuery ? 'No projects match your search query.' : 'No projects found in this category.'}
+                            <Folder size={46} className="mx-auto mb-4 text-slate-300" />
+                            <p className="text-slate-600">
+                                {searchQuery
+                                    ? 'No projects match your search query.'
+                                    : 'No projects found in this category.'}
                             </p>
                         </motion.div>
                     )}
