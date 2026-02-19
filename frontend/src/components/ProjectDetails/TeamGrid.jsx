@@ -7,7 +7,7 @@ const TeamGrid = ({ members = [] }) => {
 
     return (
         <>
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+            <div className="surface-card rounded-2xl p-8">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Team Members</h3>
 
                 {normalizedMembers.length === 0 ? (
@@ -28,7 +28,7 @@ const TeamGrid = ({ members = [] }) => {
                                         setSelectedMember(member);
                                     }
                                 }}
-                                className="text-center cursor-pointer rounded-lg hover:bg-gray-50 p-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="text-center cursor-pointer rounded-xl hover:bg-gray-50 p-2 transition-all card-hover-lift focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <div className="relative inline-block mb-3">
                                     <img
@@ -52,6 +52,7 @@ const TeamGrid = ({ members = [] }) => {
                     </div>
                 )}
             </div>
+
             <TeammateDetailsModal
                 user={selectedMember}
                 onClose={() => setSelectedMember(null)}

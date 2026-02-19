@@ -16,6 +16,24 @@ const {
 
 
 const EMBEDDING_DIMENSION = 768;
+const SOCIAL_LINK_KEYS = ['linkedin', 'twitter', 'portfolio', 'other'];
+
+function normalizeSocialLinks(input) {
+    const source = input && typeof input === 'object' ? input : {};
+    return SOCIAL_LINK_KEYS.reduce((acc, key) => {
+        const raw = source[key];
+        acc[key] = typeof raw === 'string' ? raw.trim() : '';
+        return acc;
+    }, {});
+}
+
+function hasAnySocialLink(user) {
+    if (!user || typeof user !== 'object') return false;
+    return SOCIAL_LINK_KEYS.some((key) => {
+        const value = user?.socialLinks?.[key];
+        return Boolean(String(value || '').trim());
+    });
+}
 
 function toLowerSet(values = []) {
     return new Set(
@@ -35,7 +53,7 @@ function calculateProfileCompletion(user) {
         Boolean(String(user.role || '').trim()),
         Boolean(String(user.bio || '').trim()),
         Boolean(String(user.location || '').trim()),
-        Boolean(String(user.website || '').trim()),
+        Boolean(String(user.website || '').trim()) || hasAnySocialLink(user),
         Array.isArray(user.skills) && user.skills.length > 0,
         Array.isArray(user.interests) && user.interests.length > 0,
         Boolean(user.githubId || user.githubUsername),
@@ -319,7 +337,7 @@ router.get('/:userId/github/summary', protect, async (req, res) => {
 router.get('/dashboard', protect, async (req, res) => {
     try {
         const currentUser = await User.findById(req.user._id).select(
-            'name email age qualifications role bio location website skills interests githubId githubUsername'
+            'name email age qualifications role bio location website socialLinks skills interests githubId githubUsername'
         );
 
         if (!currentUser) {
@@ -402,7 +420,7 @@ router.post('/search-semantic', protect, async (req, res) => {
         const allCandidates = await User.find({
             _id: { $ne: req.user._id },
         }).select(
-            '+embedding name email age qualifications role bio location website skills interests availability onboardingCompleted experienceLevel availabilityStatus githubId githubUsername githubProfileReadme githubSummaryCache followers following connections createdAt'
+            '+embedding name email age qualifications role bio location website socialLinks skills interests availability onboardingCompleted experienceLevel availabilityStatus githubId githubUsername githubProfileReadme githubSummaryCache followers following connections createdAt'
         );
 
         const indexedCandidates = allCandidates.filter(
@@ -476,7 +494,20 @@ router.put('/profile', protect, async (req, res) => {
             user.role = req.body.role || user.role;
             user.bio = req.body.bio || user.bio;
             user.location = req.body.location || user.location;
-            user.website = req.body.website || user.website;
+            if (req.body.website !== undefined) {
+                user.website = String(req.body.website || '').trim();
+            }
+
+            if (req.body.socialLinks && typeof req.body.socialLinks === 'object') {
+                const currentSocialLinks =
+                    user.socialLinks && typeof user.socialLinks.toObject === 'function'
+                        ? user.socialLinks.toObject()
+                        : (user.socialLinks || {});
+                user.socialLinks = {
+                    ...currentSocialLinks,
+                    ...normalizeSocialLinks(req.body.socialLinks),
+                };
+            }
 
             if (req.body.skills) user.skills = req.body.skills;
             if (req.body.interests) user.interests = req.body.interests;
@@ -518,6 +549,7 @@ router.put('/profile', protect, async (req, res) => {
                     bio: updatedUser.bio,
                     location: updatedUser.location,
                     website: updatedUser.website,
+                    socialLinks: normalizeSocialLinks(updatedUser.socialLinks),
                     githubConnected: Boolean(updatedUser.githubId || updatedUser.githubUsername),
                     githubUsername: updatedUser.githubUsername,
                     githubProfileReadme: updatedUser.githubProfileReadme || null,
@@ -560,6 +592,7 @@ router.get('/profile', protect, async (req, res) => {
                 bio: user.bio,
                 location: user.location,
                 website: user.website,
+                socialLinks: normalizeSocialLinks(user.socialLinks),
                 githubConnected: Boolean(user.githubId || user.githubUsername),
                 githubUsername: user.githubUsername,
                 githubProfileReadme: user.githubProfileReadme || null,
@@ -730,6 +763,7 @@ router.get('/:userId/profile', protect, async (req, res) => {
             bio: targetUser.bio,
             location: targetUser.location,
             website: targetUser.website,
+            socialLinks: normalizeSocialLinks(targetUser.socialLinks),
             githubConnected: Boolean(targetUser.githubId || targetUser.githubUsername),
             githubUsername: targetUser.githubUsername,
             githubProfileReadme: targetUser.githubProfileReadme || null,

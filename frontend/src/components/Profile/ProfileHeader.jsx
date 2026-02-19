@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Link as LinkIcon, Edit2, CheckCircle } from 'lucide-react';
+import { MapPin, Link as LinkIcon, Edit2, CheckCircle, Linkedin, Twitter, Globe, ExternalLink } from 'lucide-react';
 
 const ProfileHeader = ({ user, onEdit, onEditSkills, topLanguage, reposLoading, githubSummary }) => {
     const heading = user.role || user.qualifications || 'Member';
@@ -9,11 +9,24 @@ const ProfileHeader = ({ user, onEdit, onEditSkills, topLanguage, reposLoading, 
     const followingCount = Number(user.followingCount) || 0;
     const connectedCount = Number(user.connectedCount) || 0;
     const starCount = Number(user.starCount) || 0;
+    const socialLinks = user?.socialLinks || {};
+    const normalizeUrl = (value) => {
+        const trimmed = String(value || '').trim();
+        if (!trimmed) return '';
+        return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    };
+    const socials = [
+        { key: 'linkedin', label: 'LinkedIn', icon: <Linkedin size={14} />, href: normalizeUrl(socialLinks.linkedin) },
+        { key: 'twitter', label: 'X / Twitter', icon: <Twitter size={14} />, href: normalizeUrl(socialLinks.twitter) },
+        { key: 'portfolio', label: 'Portfolio', icon: <Globe size={14} />, href: normalizeUrl(socialLinks.portfolio) },
+        { key: 'other', label: 'Other', icon: <LinkIcon size={14} />, href: normalizeUrl(socialLinks.other) },
+    ].filter((item) => item.href);
+    const websiteHref = normalizeUrl(user.website);
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <div className="surface-card rounded-2xl overflow-hidden mb-6">
             {/* Banner */}
-            <div className="h-48 bg-gradient-to-r from-blue-600 to-indigo-600 relative">
+            <div className="h-48 bg-gradient-to-r from-blue-700 to-cyan-600 relative">
                 <button
                     onClick={onEdit}
                     className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/30 transition-colors"
@@ -78,13 +91,31 @@ const ProfileHeader = ({ user, onEdit, onEditSkills, topLanguage, reposLoading, 
                                 {user.location}
                             </div>
                         )}
-                        {user.website && (
-                            <a href={user.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                        {websiteHref && (
+                            <a href={websiteHref} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
                                 <LinkIcon size={16} />
-                                {user.website.replace(/^https?:\/\//, '')}
+                                {websiteHref.replace(/^https?:\/\//, '')}
                             </a>
                         )}
                     </div>
+
+                    {socials.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            {socials.map((item) => (
+                                <a
+                                    key={item.key}
+                                    href={item.href}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition-colors"
+                                >
+                                    {item.icon}
+                                    {item.label}
+                                    <ExternalLink size={12} />
+                                </a>
+                            ))}
+                        </div>
+                    ) : null}
 
                     <div className="mt-5 p-4 bg-gray-50 border border-gray-100 rounded-xl max-w-3xl">
                         <div className="flex items-center justify-between gap-3 mb-2">
@@ -107,7 +138,7 @@ const ProfileHeader = ({ user, onEdit, onEditSkills, topLanguage, reposLoading, 
                             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Verified Skills</h3>
                             <button
                                 onClick={onEditSkills || onEdit}
-                                className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                                className="text-xs font-semibold text-blue-700 hover:text-blue-800 transition-colors"
                             >
                                 Add Skill
                             </button>

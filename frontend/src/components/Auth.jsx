@@ -317,20 +317,23 @@ const Auth = () => {
                                 </div>
                             )}
 
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="group inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 px-4 py-3 text-base font-semibold text-white shadow-[0_18px_34px_-20px_rgba(14,116,255,0.95)] transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-70"
-                            >
-                                {loading ? (
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        {isLogin ? 'Sign In' : 'Create Account'}
-                                        <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-                                    </>
-                                )}
-                            </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full flex items-center justify-center py-3 px-4 rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg shadow-blue-500/30 font-medium text-lg disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                            ) : (
+                                <>
+                                    {isLogin ? 'Sign In' : 'Create Account'}
+                                    <ArrowRight className="ml-2 w-5 h-5" />
+                                </>
+                            )}
+                        </button>
+                        {authError && (
+                            <p className="text-red-500 text-sm text-center -mt-2">{authError}</p>
+                        )}
 
                             <div className="relative py-2">
                                 <div className="absolute inset-0 flex items-center">

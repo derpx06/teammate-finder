@@ -660,7 +660,7 @@ const ProjectDetails = () => {
     }
 
     return (
-        <div className="max-w-6xl xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto space-y-6">
+        <div className="max-w-6xl xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto space-y-6 page-shell">
             <ProjectHeader project={project} />
 
 
@@ -697,7 +697,7 @@ const ProjectDetails = () => {
                     />
                     </div>
 
-                    <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-6">
+                    <div className="surface-card rounded-2xl p-8 mb-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-4">About the Project</h3>
                         <div className="prose prose-blue max-w-none text-gray-600 space-y-4 whitespace-pre-line">
                             {project.fullDescription || project.shortDescription}
@@ -728,7 +728,7 @@ const ProjectDetails = () => {
                                                 type="button"
                                                 onClick={handleCancelRoadmapEditing}
                                                 disabled={roadmapSaving}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                                             >
                                                 <X className="w-3.5 h-3.5" />
                                                 Cancel
@@ -737,7 +737,7 @@ const ProjectDetails = () => {
                                                 type="button"
                                                 onClick={handleSaveRoadmap}
                                                 disabled={roadmapSaving}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                                             >
                                                 {roadmapSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                                                 {roadmapSaving ? 'Saving...' : 'Save Roadmap'}
@@ -747,7 +747,7 @@ const ProjectDetails = () => {
                                         <button
                                             type="button"
                                             onClick={handleStartRoadmapEditing}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-blue-200 text-blue-700 bg-white hover:bg-blue-50"
+                                            className="btn-secondary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
                                         >
                                             <PencilLine className="w-3.5 h-3.5" />
                                             Edit
@@ -793,7 +793,7 @@ const ProjectDetails = () => {
                                                 value={phase.title}
                                                 onChange={(event) => handleRoadmapFieldChange(index, 'title', event.target.value)}
                                                 placeholder="Phase title"
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="mini-input"
                                             />
 
                                             <textarea
@@ -801,7 +801,7 @@ const ProjectDetails = () => {
                                                 onChange={(event) => handleRoadmapFieldChange(index, 'objective', event.target.value)}
                                                 placeholder="Objective"
                                                 rows={3}
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                                                className="mini-input resize-y"
                                             />
 
                                             <div className="grid sm:grid-cols-3 gap-2">
@@ -811,7 +811,7 @@ const ProjectDetails = () => {
                                                     value={phase.startWeek}
                                                     onChange={(event) => handleRoadmapFieldChange(index, 'startWeek', event.target.value)}
                                                     placeholder="Start week"
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="mini-input"
                                                 />
                                                 <input
                                                     type="number"
@@ -819,7 +819,7 @@ const ProjectDetails = () => {
                                                     value={phase.endWeek}
                                                     onChange={(event) => handleRoadmapFieldChange(index, 'endWeek', event.target.value)}
                                                     placeholder="End week"
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="mini-input"
                                                 />
                                                 <input
                                                     type="number"
@@ -827,7 +827,7 @@ const ProjectDetails = () => {
                                                     value={phase.durationWeeks}
                                                     onChange={(event) => handleRoadmapFieldChange(index, 'durationWeeks', event.target.value)}
                                                     placeholder="Duration weeks"
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="mini-input"
                                                 />
                                             </div>
 
@@ -836,7 +836,7 @@ const ProjectDetails = () => {
                                                 value={phase.deliverables}
                                                 onChange={(event) => handleRoadmapFieldChange(index, 'deliverables', event.target.value)}
                                                 placeholder="Deliverables (comma separated)"
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="mini-input"
                                             />
 
                                             <input
@@ -844,7 +844,7 @@ const ProjectDetails = () => {
                                                 value={phase.owners}
                                                 onChange={(event) => handleRoadmapFieldChange(index, 'owners', event.target.value)}
                                                 placeholder="Owners (comma separated)"
-                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="mini-input"
                                             />
                                         </div>
                                     </div>
@@ -854,7 +854,7 @@ const ProjectDetails = () => {
                                     <button
                                         type="button"
                                         onClick={handleAddRoadmapPhase}
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md border border-blue-200 text-blue-700 bg-white hover:bg-blue-50"
+                                        className="btn-secondary inline-flex items-center gap-1.5 px-3 py-2 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                         Add Phase
@@ -926,7 +926,7 @@ const ProjectDetails = () => {
                                     <button
                                         type="button"
                                         onClick={handleCreateFirstRoadmapPhase}
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 w-fit"
+                                        className="btn-primary inline-flex items-center gap-1.5 px-3 py-2 text-xs w-fit"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                         Add First Phase
@@ -957,7 +957,7 @@ const ProjectDetails = () => {
 
                 {/* Right Column - Team & Info */}
                 <div className="space-y-6">
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <div className="surface-card rounded-2xl p-6">
                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <Link2 className="w-4 h-4 text-blue-600" />
                             Source Code
@@ -986,14 +986,14 @@ const ProjectDetails = () => {
                                     value={sourceCodeDraft}
                                     onChange={(event) => setSourceCodeDraft(event.target.value)}
                                     placeholder="https://github.com/username/repo"
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mini-input"
                                 />
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
                                         onClick={handleSaveSourceCode}
                                         disabled={sourceCodeSaving}
-                                        className="px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="btn-primary px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                         {sourceCodeSaving ? 'Saving...' : 'Save Link'}
                                     </button>
@@ -1001,7 +1001,7 @@ const ProjectDetails = () => {
                                         type="button"
                                         onClick={() => setSourceCodeDraft('')}
                                         disabled={sourceCodeSaving}
-                                        className="px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                         Clear
                                     </button>
@@ -1020,7 +1020,7 @@ const ProjectDetails = () => {
                         ) : null}
                     </div>
 
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <div className="surface-card rounded-2xl p-6">
                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <SlidersHorizontal className="w-4 h-4 text-blue-600" />
                             Project Progress
@@ -1054,7 +1054,7 @@ const ProjectDetails = () => {
                                         type="button"
                                         onClick={handleSaveProgress}
                                         disabled={progressSaving}
-                                        className="px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        className="btn-primary px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                         {progressSaving ? 'Saving...' : 'Save'}
                                     </button>
@@ -1078,7 +1078,7 @@ const ProjectDetails = () => {
                     </div>
 
                     {project.isOwner ? (
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div className="surface-card rounded-2xl p-6">
                             <h3 className="font-bold text-gray-900 mb-4">Role Applications</h3>
 
                             {applicationsError ? (
@@ -1117,7 +1117,7 @@ const ProjectDetails = () => {
                                                         handleApplicationDecision(application.id, 'accept')
                                                     }
                                                     disabled={applicationActionId === application.id}
-                                                    className="px-3 py-1.5 text-xs font-semibold rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                    className="btn-primary px-3 py-1.5 text-xs bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed"
                                                 >
                                                     {applicationActionId === application.id
                                                         ? 'Updating...'
@@ -1129,7 +1129,7 @@ const ProjectDetails = () => {
                                                         handleApplicationDecision(application.id, 'reject')
                                                     }
                                                     disabled={applicationActionId === application.id}
-                                                    className="px-3 py-1.5 text-xs font-semibold rounded-md bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                    className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                                                 >
                                                     Reject
                                                 </button>
@@ -1142,7 +1142,7 @@ const ProjectDetails = () => {
                     ) : null}
 
                     {project.isOwner ? (
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div className="surface-card rounded-2xl p-6">
                             <h3 className="font-bold text-gray-900 mb-4">Post Open Role</h3>
                             <form className="space-y-3" onSubmit={handlePostRole}>
                                 <input
@@ -1150,14 +1150,14 @@ const ProjectDetails = () => {
                                     value={newRole.title}
                                     onChange={(event) => setNewRole((prev) => ({ ...prev, title: event.target.value }))}
                                     placeholder="Role title (e.g., UI/UX Designer)"
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mini-input"
                                 />
                                 <input
                                     type="text"
                                     value={newRole.skills}
                                     onChange={(event) => setNewRole((prev) => ({ ...prev, skills: event.target.value }))}
                                     placeholder="Skills (comma separated)"
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="mini-input"
                                 />
                                 <div className="grid grid-cols-2 gap-3">
                                     <input
@@ -1166,7 +1166,7 @@ const ProjectDetails = () => {
                                         value={newRole.spots}
                                         onChange={(event) => setNewRole((prev) => ({ ...prev, spots: Number(event.target.value) || 1 }))}
                                         placeholder="Spots"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="mini-input"
                                     />
                                     <input
                                         type="number"
@@ -1174,7 +1174,7 @@ const ProjectDetails = () => {
                                         value={newRole.durationHours}
                                         onChange={(event) => setNewRole((prev) => ({ ...prev, durationHours: event.target.value }))}
                                         placeholder="Urgency hours (optional)"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="mini-input"
                                     />
                                 </div>
 
@@ -1192,7 +1192,7 @@ const ProjectDetails = () => {
                                 <button
                                     type="submit"
                                     disabled={postingRole}
-                                    className="w-full bg-gray-900 text-white text-sm font-semibold py-2 rounded-lg hover:bg-black transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="btn-primary w-full text-sm py-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                     {postingRole ? 'Posting...' : 'Post Role'}
                                 </button>
@@ -1201,7 +1201,7 @@ const ProjectDetails = () => {
                     ) : null}
 
                     {project.isOwner ? (
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div className="surface-card rounded-2xl p-6">
                             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                                 <UserPlus className="w-4 h-4 text-blue-600" />
                                 Invite Team Member
@@ -1217,7 +1217,7 @@ const ProjectDetails = () => {
                                         value={inviteEmail}
                                         onChange={(event) => setInviteEmail(event.target.value)}
                                         placeholder="teammate@example.com"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="mini-input"
                                         required
                                     />
                                 </div>
@@ -1231,7 +1231,7 @@ const ProjectDetails = () => {
                                         value={inviteRole}
                                         onChange={(event) => setInviteRole(event.target.value)}
                                         placeholder="Contributor"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="mini-input"
                                     />
                                 </div>
 
@@ -1250,7 +1250,7 @@ const ProjectDetails = () => {
                                 <button
                                     type="submit"
                                     disabled={inviting}
-                                    className="w-full bg-blue-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="btn-primary w-full text-sm py-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                     {inviting ? 'Sending Invite...' : 'Send Invite'}
                                 </button>
@@ -1261,7 +1261,7 @@ const ProjectDetails = () => {
                     <TeamGrid members={project.team} />
 
                     {/* Quick Links / Resources Placeholder */}
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <div className="surface-card rounded-2xl p-6">
                         <h3 className="font-bold text-gray-900 mb-4">Resources</h3>
                         <ul className="space-y-2 text-sm">
                             <li>

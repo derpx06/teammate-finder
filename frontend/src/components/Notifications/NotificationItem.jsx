@@ -17,7 +17,7 @@ const NotificationItem = ({
             case 'alert': return <Info size={16} className="text-blue-500" />;
             case 'invite': return <UserPlus size={16} className="text-green-500" />;
             case 'application': return <UserPlus size={16} className="text-orange-500" />;
-            case 'message': return <MessageSquare size={16} className="text-purple-500" />;
+            case 'message': return <MessageSquare size={16} className="text-cyan-600" />;
             case 'match': return <Star size={16} className="text-yellow-500" />;
             default: return <Bell size={16} className="text-gray-500" />;
         }
@@ -28,7 +28,7 @@ const NotificationItem = ({
             case 'alert': return 'bg-blue-50';
             case 'invite': return 'bg-green-50';
             case 'application': return 'bg-orange-50';
-            case 'message': return 'bg-purple-50';
+            case 'message': return 'bg-cyan-50';
             case 'match': return 'bg-yellow-50';
             default: return 'bg-gray-50';
         }
@@ -37,7 +37,7 @@ const NotificationItem = ({
     return (
         <div
             onClick={onClick}
-            className={`p-4 flex gap-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${onClick ? 'cursor-pointer' : 'cursor-default'} ${!isRead ? 'bg-blue-50/30' : ''
+            className={`p-4 flex gap-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 ${onClick ? 'cursor-pointer' : 'cursor-default'} ${!isRead ? 'bg-blue-50/40' : ''
                 }`}
         >
             <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getBgColor()}`}>
@@ -49,7 +49,7 @@ const NotificationItem = ({
                     <h4 className={`text-sm ${!isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
                         {title}
                     </h4>
-                    <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                    <span className="text-xs text-slate-400 whitespace-nowrap ml-2">
                         {formatDistanceToNow(new Date(time), { addSuffix: true })}
                     </span>
                 </div>
@@ -75,10 +75,7 @@ const NotificationItem = ({
                                     event.stopPropagation();
                                     action.onClick?.();
                                 }}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${action.variant === 'secondary'
-                                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    } disabled:opacity-60 disabled:cursor-not-allowed`}
+                                className={`${action.variant === 'secondary' ? 'btn-secondary' : 'btn-primary'} px-3 py-1.5 text-xs disabled:opacity-60 disabled:cursor-not-allowed`}
                             >
                                 {action.label}
                             </button>

@@ -72,6 +72,7 @@ const ProjectBazaar = () => {
         const roleTitle = String(item?.roleTitle || '').trim();
         const itemId = String(item?.id || '').trim();
         if (!projectId || !roleTitle || !itemId) return;
+        if (item?.applied || item?.canApply === false) return;
 
         setApplyError('');
         setApplySuccess('');
@@ -92,6 +93,13 @@ const ProjectBazaar = () => {
             }
 
             setApplySuccess(`Applied for ${roleTitle}. Project lead has been notified.`);
+            setItems((prevItems) =>
+                prevItems.map((prevItem) =>
+                    String(prevItem?.projectId || '').trim() === projectId
+                        ? { ...prevItem, applied: true, canApply: false }
+                        : prevItem
+                )
+            );
         } catch (actionError) {
             setApplyError(actionError.message || 'Failed to submit application');
         } finally {

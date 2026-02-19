@@ -41,7 +41,7 @@ const ProfileStats = ({ user }) => {
     ];
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2">
                     Profile Summary

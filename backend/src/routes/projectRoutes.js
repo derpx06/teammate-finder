@@ -919,25 +919,42 @@ function toProjectDetail(project, currentUser) {
   };
 }
 
-function toBazaarFeedItems(projects, query = {}) {
+function toBazaarFeedItems(projects, query = {}, options = {}) {
   const search = String(query.search || '')
     .trim()
     .toLowerCase();
   const skill = String(query.skill || '')
     .trim()
     .toLowerCase();
+  const currentUserId = String(options.currentUserId || '');
+  const pendingApplicationProjectIds =
+    options.pendingApplicationProjectIds instanceof Set
+      ? options.pendingApplicationProjectIds
+      : new Set(
+          (Array.isArray(options.pendingApplicationProjectIds)
+            ? options.pendingApplicationProjectIds
+            : []
+          )
+            .map((id) => String(id || '').trim())
+            .filter(Boolean)
+        );
 
   const items = projects.flatMap((project) => {
     const owner = project.owner || {};
     const ownerId = String(owner._id || project.owner || '');
+    const projectId = String(project._id || '');
+    const isOwner = Boolean(currentUserId) && ownerId === currentUserId;
+    const isMember = Boolean(currentUserId) && isProjectMember(project, currentUserId);
+    const hasPendingApplication = pendingApplicationProjectIds.has(projectId);
 
     return (project.roles || [])
       .filter((role) => role && role.title && (Number(role.spots) || 0) > 0)
       .map((role, index) => {
         const roleSkills = Array.isArray(role.skills) ? role.skills : [];
+        const roleSpots = Number(role.spots) || 1;
         return {
           id: `${project._id}-${index}`,
-          projectId: String(project._id),
+          projectId,
           projectTitle: project.title,
           projectDescription: project.description,
           projectCategory: project.category || 'General',
@@ -950,8 +967,12 @@ function toBazaarFeedItems(projects, query = {}) {
           },
           roleTitle: role.title,
           skills: roleSkills,
-          spots: Number(role.spots) || 1,
+          spots: roleSpots,
           durationHours: Number(role.durationHours) || null,
+          applied: hasPendingApplication,
+          canApply: roleSpots > 0 && !isOwner && !isMember && !hasPendingApplication,
+          isOwner,
+          isMember,
           postedAt: project.updatedAt || project.createdAt,
         };
       });
@@ -1275,11 +1296,28 @@ router.get('/my', protect, async (req, res) => {
 // @access  Private
 router.get('/bazaar', protect, async (req, res) => {
   try {
-    const projects = await Project.find({
-      status: { $ne: 'Completed' },
-    }).populate('owner', 'name email');
+    const [projects, pendingApplications] = await Promise.all([
+      Project.find({
+        status: { $ne: 'Completed' },
+      }).populate('owner', 'name email'),
+      Notification.find({
+        sender: req.user._id,
+        type: 'project_application',
+        status: 'pending',
+        project: { $ne: null },
+      }).select('project'),
+    ]);
 
-    const items = toBazaarFeedItems(projects, req.query || {});
+    const pendingApplicationProjectIds = new Set(
+      (Array.isArray(pendingApplications) ? pendingApplications : [])
+        .map((notification) => String(notification?.project || '').trim())
+        .filter(Boolean)
+    );
+
+    const items = toBazaarFeedItems(projects, req.query || {}, {
+      currentUserId: req.user._id,
+      pendingApplicationProjectIds,
+    });
 
     return res.status(200).json({
       items,

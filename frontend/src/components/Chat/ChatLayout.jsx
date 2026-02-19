@@ -231,7 +231,7 @@ const ChatLayout = () => {
     };
 
     return (
-        <div className="h-[calc(100dvh-8.25rem)] md:h-[calc(100vh-8rem)] rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_18px_60px_-25px_rgba(15,23,42,0.55)] bg-white">
+        <div className="page-shell h-[calc(100dvh-8.25rem)] md:h-[calc(100vh-8rem)] rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_18px_60px_-25px_rgba(15,23,42,0.55)] bg-white/92 backdrop-blur-sm">
             <div className="h-full flex bg-gradient-to-br from-slate-900/5 via-white to-cyan-50/40">
                 <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} flex-1 md:flex-none`}>
                     <ChatSidebar

@@ -29,7 +29,7 @@ const ProjectAnalysisPanel = ({
   const projectSkillGap = Array.isArray(analysis?.projectSkillGap) ? analysis.projectSkillGap : [];
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+    <div className="surface-card rounded-2xl p-6 mb-6">
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
         <div>
           <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -44,7 +44,7 @@ const ProjectAnalysisPanel = ({
           type="button"
           onClick={onAnalyze}
           disabled={analyzing}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="btn-primary inline-flex items-center gap-2 px-4 py-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           {analyzing ? 'Analyzing...' : 'Analyze Project'}
@@ -57,7 +57,7 @@ const ProjectAnalysisPanel = ({
             type="button"
             onClick={onOpenPositions}
             disabled={openingPositions}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="btn-primary inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {openingPositions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
             {openingPositions ? 'Opening Positions...' : 'Open Suggested Positions'}
@@ -126,7 +126,7 @@ const ProjectAnalysisPanel = ({
             ) : (
               <div className="space-y-3">
                 {roleCandidateMatches.map((entry) => (
-                  <div key={entry?.role?.title || 'role'} className="rounded-xl border border-gray-100 p-3">
+                  <div key={entry?.role?.title || 'role'} className="surface-card-muted p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <h5 className="text-sm font-semibold text-gray-900">
@@ -160,7 +160,7 @@ const ProjectAnalysisPanel = ({
                         return (
                           <div
                             key={candidateId || candidate?.email}
-                            className={`min-w-[230px] max-w-[230px] rounded-lg border border-gray-200 bg-gray-50 p-3 ${
+                            className={`min-w-[230px] max-w-[230px] surface-card-soft p-3 card-hover-lift ${
                               candidateId ? 'cursor-pointer hover:border-blue-300 transition-colors' : ''
                             }`}
                             role={candidateId ? 'button' : undefined}
@@ -194,7 +194,7 @@ const ProjectAnalysisPanel = ({
                                 event.stopPropagation();
                                 onInviteUser?.(candidateId, entry?.role?.title || 'Contributor');
                               }}
-                              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md bg-slate-900 text-white text-xs hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="mt-2 btn-primary w-full inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <UserPlus className="w-3.5 h-3.5" />
                               {inviteState.loading ? 'Inviting...' : 'Invite'}

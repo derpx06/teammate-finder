@@ -81,7 +81,7 @@ const OAuthCallback = () => {
     }, [searchParams, navigate]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="auth-shell min-h-screen flex items-center justify-center">
             <div className="text-center">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900">Completing Authentication...</h2>

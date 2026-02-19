@@ -111,7 +111,7 @@ const Onboarding = () => {
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">All Set!</h2>
                     <p className="text-gray-600 mb-8">Your profile is ready. Let's find some projects.</p>
-                    <Link to="/dashboard" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                    <Link to="/dashboard" className="btn-primary inline-flex px-8 py-3">
                         Go to Dashboard
                     </Link>
                 </div>;
@@ -119,20 +119,20 @@ const Onboarding = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="onboarding-shell min-h-screen flex items-center justify-center p-4">
+            <div className="onboarding-panel w-full max-w-2xl rounded-2xl overflow-hidden">
                 {currentStep <= totalSteps && (
-                    <div className="bg-gray-50 px-8 py-6 border-b border-gray-100">
+                    <div className="bg-slate-50/80 px-8 py-6 border-b border-slate-200">
                         <div className="flex justify-between items-center mb-4">
-                            <span className="text-sm font-medium text-gray-500">Step {currentStep} of {totalSteps}</span>
+                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Step {currentStep} of {totalSteps}</span>
                             <span className="text-sm font-medium text-blue-600">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
                         </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                             <MotionDiv
                                 initial={{ width: 0 }}
                                 animate={{ width: `${(currentStep / totalSteps) * 100}%` }}
                                 transition={{ duration: 0.5 }}
-                                className="h-full bg-blue-600 rounded-full"
+                                className="h-full bg-gradient-to-r from-blue-700 to-cyan-500 rounded-full"
                             />
                         </div>
                     </div>
@@ -153,11 +153,11 @@ const Onboarding = () => {
                 </div>
 
                 {currentStep <= totalSteps && (
-                    <div className="px-8 py-6 bg-gray-50 border-t border-gray-100 flex justify-between">
+                    <div className="px-8 py-6 bg-slate-50/80 border-t border-slate-200 flex justify-between">
                         <button
                             onClick={handleBack}
                             disabled={currentStep === 1 || isSubmitting}
-                            className={`flex items-center px-6 py-2 rounded-xl text-gray-600 font-medium transition-colors ${currentStep === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'
+                            className={`btn-secondary flex items-center px-6 py-2 ${currentStep === 1 ? 'opacity-50 cursor-not-allowed' : ''
                                 }`}
                         >
                             <ChevronLeft className="w-5 h-5 mr-1" />
@@ -166,7 +166,7 @@ const Onboarding = () => {
                         <button
                             onClick={handleNext}
                             disabled={isSubmitting}
-                            className="flex items-center px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="btn-primary flex items-center px-6 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                                 <>
