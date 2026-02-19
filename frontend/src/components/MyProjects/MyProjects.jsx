@@ -4,7 +4,6 @@ import { Folder, Loader2, Plus, Sparkles, Search } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProjectCard from './ProjectCard';
 import ConfirmModal from '../common/ConfirmModal';
-import ConfirmModal from '../common/ConfirmModal';
 import { API_BASE_URL } from '../../config/api';
 
 const MyProjects = () => {

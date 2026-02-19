@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import {
+    Sparkles,
+    ArrowRight,
+    Gauge,
+    FolderKanban,
+    Users,
+    CalendarDays,
+} from 'lucide-react';
 import CompatibilityScore from './CompatibilityScore';
 import SkillBreakdown from './SkillBreakdown';
 import AvailabilityChart from './AvailabilityChart';
@@ -160,6 +167,67 @@ const MatchInsights = () => {
         return 'Add more profile skills and active projects to unlock stronger recommendation quality.';
     }, [recommendation]);
 
+    const insightCards = useMemo(
+        () => [
+            {
+                label: 'Profile Completion',
+                value: `${insightMeta.profileCompletion}%`,
+                helper:
+                    insightMeta.profileCompletion >= 80
+                        ? 'Healthy profile signal'
+                        : 'Update profile to improve match quality',
+                Icon: Gauge,
+                iconClass: 'text-blue-700',
+                iconBg: 'bg-blue-100',
+                topBar: 'from-blue-600 to-cyan-500',
+            },
+            {
+                label: 'Active Projects',
+                value: insightMeta.activeProjects,
+                helper:
+                    insightMeta.activeProjects > 0
+                        ? 'Projects contributing to recommendations'
+                        : 'No active projects detected',
+                Icon: FolderKanban,
+                iconClass: 'text-indigo-700',
+                iconBg: 'bg-indigo-100',
+                topBar: 'from-indigo-600 to-blue-500',
+            },
+            {
+                label: 'Suggested Matches',
+                value: insightMeta.suggestedMatches,
+                helper:
+                    insightMeta.suggestedMatches > 0
+                        ? 'Potential collaborators identified'
+                        : 'Expand skills to unlock stronger matches',
+                Icon: Users,
+                iconClass: 'text-emerald-700',
+                iconBg: 'bg-emerald-100',
+                topBar: 'from-emerald-600 to-cyan-500',
+            },
+            {
+                label: 'Available Days',
+                value: insightMeta.availabilityDays,
+                helper:
+                    insightMeta.availabilityDays >= 4
+                        ? 'Reliable scheduling flexibility'
+                        : 'Add more availability for better planning',
+                Icon: CalendarDays,
+                iconClass: 'text-cyan-700',
+                iconBg: 'bg-cyan-100',
+                topBar: 'from-cyan-600 to-sky-500',
+            },
+        ],
+        [insightMeta]
+    );
+
+    const updatedLabel = lastUpdated
+        ? `${lastUpdated.toLocaleDateString()} • ${lastUpdated.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+          })}`
+        : 'Now';
+
     if (loading) {
         return (
             <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto min-h-[40vh] flex items-center justify-center text-gray-600">
@@ -181,71 +249,92 @@ const MatchInsights = () => {
 
     return (
         <div className="max-w-7xl 2xl:max-w-screen-2xl mx-auto space-y-6 page-shell">
-            <div className="page-header mb-2">
+            <section className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-[linear-gradient(120deg,#0f172a_0%,#1d4ed8_58%,#0e7490_140%)] p-6 sm:p-8 text-white shadow-[0_24px_55px_-38px_rgba(15,23,42,0.9)]">
+                <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-300/25 blur-3xl" />
+                <div className="absolute -bottom-24 left-16 h-52 w-52 rounded-full bg-blue-400/20 blur-3xl" />
+                <div className="relative z-10 page-header mb-0">
+                    <div>
+                        <p className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-cyan-100">
+                            <Sparkles size={13} />
+                            Match intelligence
+                        </p>
+                        <h1 className="page-title text-white mt-4">Match Insights</h1>
+                        <p className="page-subtitle text-slate-200">
+                            AI-driven compatibility analysis across your profile, current projects, and availability.
+                        </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-medium flex items-center gap-2 self-start md:self-auto backdrop-blur-sm">
+                        <Sparkles size={16} className="text-cyan-200" />
+                        Updated {updatedLabel}
+                    </div>
+                </div>
+                <div className="relative z-10 mt-5 flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                        {overallScore}% current fit score
+                    </span>
+                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                        {skills.length} skills tracked
+                    </span>
+                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+                        {missingSkills.length} skill gap signal(s)
+                    </span>
+                </div>
+            </section>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {insightCards.map((card) => (
+                    <article
+                        key={card.label}
+                        className="surface-card rounded-2xl p-4 sm:p-5 relative overflow-hidden border border-slate-200/80"
+                    >
+                        <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${card.topBar}`} />
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                            <div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${card.iconBg}`}>
+                                <card.Icon className={`h-5 w-5 ${card.iconClass}`} />
+                            </div>
+                            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                Snapshot
+                            </span>
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-bold text-slate-900 leading-none">{card.value}</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-700">{card.label}</div>
+                        <p className="mt-2 text-xs text-slate-500 leading-relaxed">{card.helper}</p>
+                    </article>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
                 <div>
-                    <h1 className="page-title">Match Insights</h1>
-                    <p className="page-subtitle">AI-driven analysis of your compatibility with current projects.</p>
-                </div>
-                <div className="pill-soft px-4 py-2 text-sm font-medium flex items-center gap-2 self-start md:self-auto">
-                    <Sparkles size={16} />
-                    AI Analysis Updated {lastUpdated ? lastUpdated.toLocaleDateString() : 'Now'}
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <div className="surface-card rounded-xl p-3 sm:p-4">
-                    <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Profile Completion
-                    </div>
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
-                        {insightMeta.profileCompletion}%
-                    </div>
-                </div>
-                <div className="surface-card rounded-xl p-3 sm:p-4">
-                    <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Active Projects
-                    </div>
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
-                        {insightMeta.activeProjects}
-                    </div>
-                </div>
-                <div className="surface-card rounded-xl p-3 sm:p-4">
-                    <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Suggested Matches
-                    </div>
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
-                        {insightMeta.suggestedMatches}
-                    </div>
-                </div>
-                <div className="surface-card rounded-xl p-3 sm:p-4">
-                    <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Available Days
-                    </div>
-                    <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
-                        {insightMeta.availabilityDays}
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                <div className="xl:col-span-4">
                     <CompatibilityScore score={overallScore} />
                 </div>
 
-                <div className="xl:col-span-8 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-5 sm:p-7 lg:p-8 text-white relative overflow-hidden flex flex-col justify-center shadow-lg">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500 opacity-20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
+                <div className="rounded-3xl border border-blue-200/70 bg-[linear-gradient(125deg,#1e3a8a_0%,#1d4ed8_55%,#0e7490_130%)] p-6 sm:p-7 lg:p-8 text-white relative overflow-hidden flex flex-col justify-center shadow-[0_24px_56px_-38px_rgba(15,23,42,0.95)]">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 w-40 h-40 bg-cyan-300 opacity-20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
+                    <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-white/[0.06] to-transparent" />
 
-                    <div className="relative z-10">
+                    <div className="relative z-10 max-w-3xl">
                         <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                            <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                                <Sparkles className="text-yellow-300" size={20} />
+                            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                                <Sparkles className="text-cyan-100" size={20} />
                             </div>
                             <h2 className="text-xl sm:text-2xl font-bold">AI Recommendation</h2>
                         </div>
-                        <p className="text-blue-100 text-sm sm:text-base lg:text-lg mb-5 sm:mb-6 leading-relaxed max-w-3xl">
+                        <p className="text-blue-100 text-sm sm:text-base lg:text-lg mb-5 sm:mb-6 leading-relaxed">
                             {recommendationText}
                         </p>
+                        <div className="mb-5 sm:mb-6 flex flex-wrap gap-2 text-xs sm:text-sm">
+                            {recommendation?.project?.title ? (
+                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5">
+                                    Project: {recommendation.project.title}
+                                </span>
+                            ) : null}
+                            {recommendation?.teammate?.name ? (
+                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1.5">
+                                    Teammate: {recommendation.teammate.name}
+                                </span>
+                            ) : null}
+                        </div>
                         <button
                             onClick={() =>
                                 navigate(
