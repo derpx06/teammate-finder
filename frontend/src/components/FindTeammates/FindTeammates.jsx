@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Loader2, Sparkles, Users, Filter, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import FilterSidebar from './FilterSidebar';
 import TeammateCard from './TeammateCard';
 import TeammateDetailsModal from './TeammateDetailsModal';
@@ -8,6 +8,7 @@ import ComponentErrorBoundary from '../common/ComponentErrorBoundary';
 import { API_BASE_URL } from '../../config/api';
 
 const FindTeammates = () => {
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
     const [semanticQuery, setSemanticQuery] = useState('');
@@ -18,12 +19,16 @@ const FindTeammates = () => {
     });
     const [teammates, setTeammates] = useState([]);
     const [semanticResults, setSemanticResults] = useState([]);
+    const [agentProjectResults, setAgentProjectResults] = useState([]);
     const [isSemanticMode, setIsSemanticMode] = useState(false);
     const [semanticMeta, setSemanticMeta] = useState(null);
+    const [agentProjectMeta, setAgentProjectMeta] = useState(null);
     const [loading, setLoading] = useState(true);
     const [semanticLoading, setSemanticLoading] = useState(false);
+    const [agentProjectLoading, setAgentProjectLoading] = useState(false);
     const [error, setError] = useState('');
     const [semanticError, setSemanticError] = useState('');
+    const [agentProjectError, setAgentProjectError] = useState('');
     const [connectError, setConnectError] = useState('');
     const [connectSuccess, setConnectSuccess] = useState('');
     const [connectingUserId, setConnectingUserId] = useState('');
@@ -122,6 +127,9 @@ const FindTeammates = () => {
             setSemanticResults([]);
             setSemanticMeta(null);
             setSemanticError('');
+            setAgentProjectResults([]);
+            setAgentProjectMeta(null);
+            setAgentProjectError('');
             return;
         }
 
@@ -130,27 +138,65 @@ const FindTeammates = () => {
         }
 
         setSemanticLoading(true);
+        setAgentProjectLoading(true);
         setSemanticError('');
+        setAgentProjectError('');
         try {
             const token = localStorage.getItem('authToken');
+            const shouldSearchProjects = normalizedQuery.length >= 3;
 
-            const response = await fetch(`${API_BASE_URL}/api/user/search-semantic`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ queryText: normalizedQuery }),
-            });
+            const requests = [
+                fetch(`${API_BASE_URL}/api/user/search-semantic`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ queryText: normalizedQuery }),
+                }),
+            ];
 
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to run semantic search');
+            if (shouldSearchProjects) {
+                requests.push(
+                    fetch(`${API_BASE_URL}/api/project/agent-search`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ queryText: normalizedQuery }),
+                    })
+                );
             }
 
-            const results = Array.isArray(data.results) ? data.results : [];
+            const responses = await Promise.all(requests);
+            const teammateResponse = responses[0];
+            const projectResponse = shouldSearchProjects ? responses[1] : null;
+
+            const teammateData = await teammateResponse.json().catch(() => ({}));
+            if (!teammateResponse.ok) {
+                throw new Error(teammateData.error || 'Failed to run semantic search');
+            }
+            if (!shouldSearchProjects) {
+                setAgentProjectResults([]);
+                setAgentProjectMeta(null);
+                setAgentProjectError('');
+            } else {
+                const projectData = await projectResponse.json().catch(() => ({}));
+                if (!projectResponse.ok) {
+                    setAgentProjectError(projectData.error || 'Failed to find matching projects');
+                    setAgentProjectResults([]);
+                    setAgentProjectMeta(null);
+                } else {
+                    setAgentProjectResults(Array.isArray(projectData.results) ? projectData.results : []);
+                    setAgentProjectMeta(projectData.meta || null);
+                    setAgentProjectError('');
+                }
+            }
+
+            const results = Array.isArray(teammateData.results) ? teammateData.results : [];
             setSemanticResults(results);
-            setSemanticMeta(data.meta || null);
+            setSemanticMeta(teammateData.meta || null);
             setIsSemanticMode(true);
             if (markAuto) {
                 setLastAutoSemanticQuery(normalizedQuery);
@@ -158,8 +204,11 @@ const FindTeammates = () => {
         } catch (searchError) {
             console.error('Semantic search failed:', searchError);
             setSemanticError(searchError.message || 'Semantic search failed');
+            setAgentProjectResults([]);
+            setAgentProjectMeta(null);
         } finally {
             setSemanticLoading(false);
+            setAgentProjectLoading(false);
         }
     }, []);
 
@@ -177,6 +226,9 @@ const FindTeammates = () => {
             setSemanticResults([]);
             setSemanticMeta(null);
             setSemanticError('');
+            setAgentProjectResults([]);
+            setAgentProjectMeta(null);
+            setAgentProjectError('');
             fetchTeammates();
             return;
         }
@@ -189,6 +241,38 @@ const FindTeammates = () => {
         setIsSemanticMode(false);
         setSemanticError('');
         setSemanticMeta(null);
+        if (normalizedQuery.length >= 3) {
+            setAgentProjectLoading(true);
+            setAgentProjectError('');
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${API_BASE_URL}/api/project/agent-search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ queryText: normalizedQuery }),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to find matching projects');
+                }
+                setAgentProjectResults(Array.isArray(data.results) ? data.results : []);
+                setAgentProjectMeta(data.meta || null);
+            } catch (projectError) {
+                setAgentProjectResults([]);
+                setAgentProjectMeta(null);
+                setAgentProjectError(projectError.message || 'Failed to find matching projects');
+            } finally {
+                setAgentProjectLoading(false);
+            }
+        } else {
+            setAgentProjectResults([]);
+            setAgentProjectMeta(null);
+            setAgentProjectError('');
+            setAgentProjectLoading(false);
+        }
         fetchTeammates();
     };
 
@@ -198,6 +282,9 @@ const FindTeammates = () => {
         setSemanticResults([]);
         setSemanticMeta(null);
         setIsSemanticMode(false);
+        setAgentProjectResults([]);
+        setAgentProjectMeta(null);
+        setAgentProjectError('');
     };
 
     const handleConnect = useCallback(async (targetUser) => {
@@ -333,6 +420,14 @@ const FindTeammates = () => {
         searchQuery,
         semanticQuery,
     ]);
+
+    useEffect(() => {
+        if (searchQuery.trim()) return;
+        if (semanticQuery.trim()) return;
+        setAgentProjectResults([]);
+        setAgentProjectMeta(null);
+        setAgentProjectError('');
+    }, [searchQuery, semanticQuery]);
 
     const displayedTeammates = isSemanticMode ? semanticResults : teammates;
     const isLoadingTeammates = isSemanticMode ? semanticLoading : loading;
@@ -471,6 +566,74 @@ const FindTeammates = () => {
                         ) : null}
                     </section>
 
+                    {(agentProjectLoading || agentProjectResults.length > 0 || agentProjectError || searchQuery.trim() || semanticQuery.trim()) ? (
+                        <section className="rounded-2xl border border-emerald-100 bg-white/95 p-4 shadow-sm sm:p-5">
+                            <div className="mb-3 flex items-center gap-2 text-emerald-700">
+                                <Sparkles size={17} />
+                                <h2 className="text-base font-bold sm:text-lg">AI Project Agent</h2>
+                            </div>
+                            <p className="mb-4 text-sm text-slate-600">
+                                Project roles ranked for your search intent and skill overlap.
+                            </p>
+
+                            {agentProjectLoading ? (
+                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                    <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                                    Finding project matches...
+                                </div>
+                            ) : null}
+
+                            {!agentProjectLoading && agentProjectError ? (
+                                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                                    {agentProjectError}
+                                </div>
+                            ) : null}
+
+                            {!agentProjectLoading && !agentProjectError && agentProjectResults.length > 0 ? (
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    {agentProjectResults.map((item) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => navigate(`/project/${item.projectId}`)}
+                                            className="text-left rounded-xl border border-emerald-100 bg-emerald-50/40 p-3 transition hover:border-emerald-300 hover:bg-emerald-50"
+                                        >
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                                                {item.projectCategory || 'General'}
+                                            </p>
+                                            <h3 className="text-sm font-bold text-slate-900 mt-0.5 line-clamp-1">
+                                                {item.projectTitle}
+                                            </h3>
+                                            <p className="text-xs text-slate-600 mt-1 line-clamp-1">
+                                                {item.roleTitle} • {Math.round((Number(item.agentScore) || 0) * 100)}% agent match
+                                            </p>
+                                            <p className="text-[11px] text-slate-500 mt-1">
+                                                Owner: {item.owner?.name || 'Project Owner'} • {item.spots} spot{Number(item.spots) > 1 ? 's' : ''}
+                                            </p>
+                                            {Array.isArray(item.agentReasons) && item.agentReasons.length > 0 ? (
+                                                <div className="mt-2 text-[11px] text-emerald-800">
+                                                    {item.agentReasons.slice(0, 2).join(' · ')}
+                                                </div>
+                                            ) : null}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : null}
+
+                            {!agentProjectLoading && !agentProjectError && agentProjectResults.length === 0 && (searchQuery.trim() || semanticQuery.trim()) ? (
+                                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                                    No project matches found yet for this query.
+                                </div>
+                            ) : null}
+
+                            {agentProjectMeta?.returned >= 0 ? (
+                                <div className="mt-3 text-xs text-slate-500">
+                                    Showing {agentProjectMeta.returned} project role matches.
+                                </div>
+                            ) : null}
+                        </section>
+                    ) : null}
+
                     <section className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm sm:p-5">
                         <form onSubmit={handlePrimarySearchSubmit} className="space-y-2">
                             <div className="relative flex gap-2">
@@ -544,6 +707,11 @@ const FindTeammates = () => {
                                     <TeammateCard
                                         key={user._id || user.id || user.email}
                                         user={user}
+                                        onCardClick={(candidate) => {
+                                            const targetId = String(candidate?._id || candidate?.id || '').trim();
+                                            if (!targetId) return;
+                                            navigate(`/user/${targetId}`);
+                                        }}
                                         onViewDetails={setSelectedTeammate}
                                         onConnect={handleConnect}
                                         onToggleFollow={handleToggleFollow}

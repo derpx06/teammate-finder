@@ -59,6 +59,14 @@ function formatDateRange(startDate, endDate) {
     return 'Timeline flexible';
 }
 
+function formatAgentDirectiveLabel(agentDirective) {
+    if (!agentDirective || typeof agentDirective !== 'object') return '';
+    const modeLabel = String(agentDirective.modeLabel || '').trim();
+    const reason = String(agentDirective.reason || '').trim();
+    if (modeLabel && reason) return `${modeLabel}: ${reason}`;
+    return modeLabel || reason;
+}
+
 function toProjectPayloadFromPlan(plan = {}) {
     const roles = (Array.isArray(plan?.roles) ? plan.roles : []).map((role) => ({
         title: String(role?.title || '').trim(),
@@ -104,7 +112,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
         {
             id: 1,
             role: 'assistant',
-            text: 'I am your Virtual CTO. Describe what you want to build, and I will create a full project plan and auto-fill your form.',
+            text: 'I am your Virtual CTO. Describe what you want to build for a full blueprint, or ask me to suggest project ideas first.',
         },
     ]);
     const [selectedTeammate, setSelectedTeammate] = useState(null);
@@ -293,9 +301,8 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
         }
     };
 
-    const handleSend = async (event) => {
-        event.preventDefault();
-        const idea = String(input || '').trim();
+    const submitIdeaPrompt = async (ideaInput) => {
+        const idea = String(ideaInput || '').trim();
         if (!idea || isThinking) return;
 
         appendMessage({
@@ -317,16 +324,39 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
             const teammateSuggestions = Array.isArray(result?.teammateSuggestions)
                 ? result.teammateSuggestions
                 : [];
+            const suggestedIdeas = Array.isArray(result?.suggestedIdeas)
+                ? result.suggestedIdeas
+                : [];
             const ecosystemInsights = result?.ecosystemInsights || null;
             const meta = result?.meta || null;
+            const agentDirective = meta?.agentDirective || result?.agentDirective || null;
             const applied = Boolean(result?.applied);
             const overwriteCancelled = result?.reason === 'overwrite_cancelled';
 
+            if (!plan && suggestedIdeas.length > 0) {
+                const directiveLabel = formatAgentDirectiveLabel(agentDirective);
+                appendMessage({
+                    id: Date.now() + 1,
+                    role: 'assistant',
+                    text: directiveLabel
+                        ? `I understood your request as: ${directiveLabel}\n\nHere are personalized project ideas. Pick one and I will generate the full blueprint.`
+                        : 'Here are personalized project ideas. Pick one and I will generate the full blueprint.',
+                    suggestedIdeas,
+                    ecosystemInsights,
+                    meta,
+                });
+                return;
+            }
+
             let replyText = 'Blueprint is ready.';
+            const directiveLabel = formatAgentDirectiveLabel(agentDirective);
             if (applied) {
                 replyText = 'Blueprint is ready and your form has been auto-filled. You can edit everything before launching.';
             } else if (overwriteCancelled) {
                 replyText = 'Blueprint is ready, but I did not overwrite your existing draft.';
+            }
+            if (directiveLabel) {
+                replyText = `I understood your request as: ${directiveLabel}\n\n${replyText}`;
             }
 
             appendMessage({
@@ -336,6 +366,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                 plan,
                 teammates,
                 teammateSuggestions,
+                suggestedIdeas: [],
                 ecosystemInsights,
                 meta,
                 action: {
@@ -357,6 +388,17 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
             setIsThinking(false);
             setLiveStatus('Architecting your project...');
         }
+    };
+
+    const handleSend = async (event) => {
+        event.preventDefault();
+        await submitIdeaPrompt(input);
+    };
+
+    const handleUseSuggestedIdea = async (prompt) => {
+        const normalizedPrompt = String(prompt || '').trim();
+        if (!normalizedPrompt) return;
+        await submitIdeaPrompt(normalizedPrompt);
     };
 
     const handleComposerKeyDown = (event) => {
@@ -444,7 +486,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
 
                     <div className="px-4 sm:px-5 py-2.5 border-b border-slate-200 bg-gradient-to-r from-sky-50/70 to-indigo-50/50">
                         <div className="text-[11px] text-slate-600">
-                            Describe your idea. I will generate title, pitch, stack, hiring roles, and teammate recommendations.
+                            Describe your idea to generate a blueprint, or ask me to suggest project ideas first.
                         </div>
                     </div>
 
@@ -469,6 +511,76 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                         }`}
                                 >
                                     <p className="whitespace-pre-wrap">{message.text}</p>
+                                    {message.meta?.agentDirective ? (
+                                        <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] text-blue-700">
+                                            <span className="font-semibold">Agent mode:</span>{' '}
+                                            {String(message.meta.agentDirective.modeLabel || 'Auto')}{' '}
+                                            {message.meta.agentDirective.reason
+                                                ? `- ${String(message.meta.agentDirective.reason)}`
+                                                : ''}
+                                        </div>
+                                    ) : null}
+
+                                    {Array.isArray(message.suggestedIdeas) && message.suggestedIdeas.length > 0 ? (
+                                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2">
+                                            <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">
+                                                Suggested Projects
+                                            </div>
+                                            {message.suggestedIdeas.slice(0, 6).map((idea, index) => (
+                                                <div
+                                                    key={idea.id || `suggested-idea-${index}`}
+                                                    className="rounded-lg border border-slate-200 bg-white px-2 py-2"
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="min-w-0">
+                                                            <div className="text-[11px] font-semibold text-slate-900 truncate">
+                                                                {idea.title || `Project Idea ${index + 1}`}
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-600 line-clamp-2">
+                                                                {idea.summary || 'Execution-ready idea with stack and roadmap guidance.'}
+                                                            </div>
+                                                        </div>
+                                                        <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded-md border border-blue-200 bg-blue-50 text-blue-700">
+                                                            {idea.categoryLabel || 'General Product'}
+                                                        </span>
+                                                    </div>
+
+                                                    {idea.alignmentReason ? (
+                                                        <div className="mt-1 text-[10px] text-emerald-700">
+                                                            {idea.alignmentReason}
+                                                        </div>
+                                                    ) : null}
+
+                                                    {Array.isArray(idea.techStack) && idea.techStack.length > 0 ? (
+                                                        <div className="mt-1 flex flex-wrap gap-1">
+                                                            {idea.techStack.slice(0, 4).map((stackItem) => (
+                                                                <span
+                                                                    key={`${idea.id || index}-${stackItem}`}
+                                                                    className="text-[9px] px-1.5 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600"
+                                                                >
+                                                                    {stackItem}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : null}
+
+                                                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                                                        <span className="text-[10px] text-slate-500">
+                                                            {idea.estimatedWeeks ? `${idea.estimatedWeeks} weeks` : 'Timeline will be generated'}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUseSuggestedIdea(idea.prompt || idea.idea)}
+                                                            disabled={isThinking}
+                                                            className="text-[10px] px-2 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        >
+                                                            Use This Idea
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : null}
 
                                     {message.plan ? (
                                         <div className="mt-3 rounded-xl border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-2.5 sm:p-3 space-y-2.5">
@@ -849,7 +961,7 @@ const VirtualCTOChatWidget = ({ onArchitectIdea }) => {
                                     value={input}
                                     onChange={(event) => setInput(event.target.value)}
                                     onKeyDown={handleComposerKeyDown}
-                                    placeholder="Example: An app that matches people with weekend hackathon teammates"
+                                    placeholder="Example: suggest me some project ideas OR build an app that matches people with weekend hackathon teammates"
                                     className="flex-1 min-h-[44px] max-h-36 px-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed"
                                     disabled={isThinking}
                                 />

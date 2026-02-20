@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bot, Loader2, Sparkles, UserPlus, Users } from 'lucide-react';
-import TeammateDetailsModal from '../FindTeammates/TeammateDetailsModal';
 
 function toPercent(value) {
   const numeric = Number(value);
@@ -19,7 +19,7 @@ const ProjectAnalysisPanel = ({
   onOpenPositions,
   openingPositions = false,
 }) => {
-  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const navigate = useNavigate();
   const roleCandidateMatches = Array.isArray(analysis?.roleCandidateMatches)
     ? analysis.roleCandidateMatches
     : [];
@@ -145,18 +145,6 @@ const ProjectAnalysisPanel = ({
                       {(Array.isArray(entry?.candidates) ? entry.candidates : []).map((candidate) => {
                         const candidateId = String(candidate?.id || '');
                         const inviteState = invitingByUserId?.[candidateId] || {};
-                        const candidateProfile = {
-                          _id: candidateId || undefined,
-                          id: candidateId || undefined,
-                          name: candidate?.name || candidate?.email || 'Candidate',
-                          email: candidate?.email || '',
-                          role: candidate?.role || 'Member',
-                          skills: Array.isArray(candidate?.skills)
-                            ? candidate.skills
-                            : Array.isArray(candidate?.matchedRoleSkills)
-                            ? candidate.matchedRoleSkills
-                            : [],
-                        };
                         return (
                           <div
                             key={candidateId || candidate?.email}
@@ -167,13 +155,13 @@ const ProjectAnalysisPanel = ({
                             tabIndex={candidateId ? 0 : undefined}
                             onClick={() => {
                               if (!candidateId) return;
-                              setSelectedCandidate(candidateProfile);
+                              navigate(`/user/${candidateId}`);
                             }}
                             onKeyDown={(event) => {
                               if (!candidateId) return;
                               if (event.key === 'Enter' || event.key === ' ') {
                                 event.preventDefault();
-                                setSelectedCandidate(candidateProfile);
+                                navigate(`/user/${candidateId}`);
                               }
                             }}
                           >
@@ -232,11 +220,6 @@ const ProjectAnalysisPanel = ({
           ) : null}
         </div>
       ) : null}
-
-      <TeammateDetailsModal
-        user={selectedCandidate}
-        onClose={() => setSelectedCandidate(null)}
-      />
     </div>
   );
 };

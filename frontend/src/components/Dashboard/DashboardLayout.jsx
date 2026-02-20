@@ -56,10 +56,12 @@ const DashboardLayout = ({ children }) => {
             if (!planResponse.ok) {
                 throw new Error(planData.error || 'Failed to generate project blueprint');
             }
+            const suggestedIdeas = Array.isArray(planData.suggestedIdeas) ? planData.suggestedIdeas : [];
             return {
-                plan: planData.plan || null,
+                plan: suggestedIdeas.length > 0 ? null : (planData.plan || null),
                 teammates: Array.isArray(planData.candidates) ? planData.candidates : [],
                 teammateSuggestions: Array.isArray(planData.teammateSuggestions) ? planData.teammateSuggestions : [],
+                suggestedIdeas,
                 ecosystemInsights: planData.ecosystemInsights || null,
                 meta: planData.meta || null,
                 applied: false,
@@ -109,13 +111,15 @@ const DashboardLayout = ({ children }) => {
         const teammateSuggestions = Array.isArray(planData.teammateSuggestions)
             ? planData.teammateSuggestions
             : [];
+        const suggestedIdeas = Array.isArray(planData.suggestedIdeas) ? planData.suggestedIdeas : [];
         const ecosystemInsights = planData.ecosystemInsights || null;
         const meta = planData.meta || null;
 
         return {
-            plan: planData.plan || null,
+            plan: suggestedIdeas.length > 0 ? null : (planData.plan || null),
             teammates,
             teammateSuggestions,
+            suggestedIdeas,
             ecosystemInsights,
             meta,
             applied: false,

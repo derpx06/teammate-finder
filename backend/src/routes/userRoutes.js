@@ -237,6 +237,163 @@ function buildKeywordFallbackMatches(queryText, users = [], limit = 10) {
         }));
 }
 
+function clampToUnit(value) {
+    if (!Number.isFinite(Number(value))) return 0;
+    return Math.max(0, Math.min(1, Number(value)));
+}
+
+function normalizeText(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function getExperienceRank(level) {
+    const normalized = normalizeText(level);
+    if (normalized === 'junior') return 1;
+    if (normalized === 'mid-level' || normalized === 'mid level' || normalized === 'mid') return 2;
+    if (normalized === 'senior') return 3;
+    if (normalized === 'expert') return 4;
+    return 0;
+}
+
+function scoreAvailabilityCompatibility(currentAvailabilityStatus, candidateAvailabilityStatus) {
+    const current = normalizeText(currentAvailabilityStatus);
+    const candidate = normalizeText(candidateAvailabilityStatus);
+    if (!current || !candidate) return 0;
+    if (current === candidate) return 1;
+    if (current === 'full-time' || candidate === 'full-time') return 0.75;
+    if (current === 'part-time' && candidate === 'weekends') return 0.55;
+    if (current === 'weekends' && candidate === 'part-time') return 0.55;
+    return 0.45;
+}
+
+function extractRoleSignals(user = {}) {
+    const roleCorpus = [
+        user?.role,
+        ...(Array.isArray(user?.skills) ? user.skills : []),
+        ...(Array.isArray(user?.interests) ? user.interests : []),
+        user?.bio,
+    ]
+        .map((value) => String(value || '').toLowerCase())
+        .join(' ');
+
+    const signals = new Set();
+    if (/(front[- ]?end|react|vue|angular|css|ui)\b/.test(roleCorpus)) signals.add('frontend');
+    if (/(back[- ]?end|node|express|api|server|django|spring)\b/.test(roleCorpus)) signals.add('backend');
+    if (/(full[- ]?stack)\b/.test(roleCorpus)) signals.add('fullstack');
+    if (/(ai|ml|machine learning|data science|llm)\b/.test(roleCorpus)) signals.add('ml');
+    if (/(mobile|android|ios|react native|flutter)\b/.test(roleCorpus)) signals.add('mobile');
+    if (/(devops|kubernetes|docker|cloud|infra|sre)\b/.test(roleCorpus)) signals.add('devops');
+    if (/(design|ux|ui\/ux|figma)\b/.test(roleCorpus)) signals.add('design');
+    if (/(web3|blockchain|solidity|smart contract)\b/.test(roleCorpus)) signals.add('blockchain');
+    return signals;
+}
+
+function buildSemanticSearchContext(user = {}) {
+    return {
+        skills: toLowerSet(user?.skills || []),
+        interests: toLowerSet(user?.interests || []),
+        roleSignals: extractRoleSignals(user),
+        roleText: normalizeText(user?.role),
+        availabilityStatus: normalizeText(user?.availabilityStatus),
+        experienceRank: getExperienceRank(user?.experienceLevel),
+    };
+}
+
+function scoreTeammateWithContext({
+    candidate = {},
+    searchContext = {},
+    semanticScore = 0,
+    keywordScore = 0,
+    isConnected = false,
+    isFollowed = false,
+}) {
+    const candidateSkills = toLowerSet(candidate?.skills || []);
+    const candidateInterests = toLowerSet(candidate?.interests || []);
+    const candidateRoleSignals = extractRoleSignals(candidate);
+    const candidateRoleText = normalizeText(candidate?.role);
+
+    const mySkills = searchContext?.skills instanceof Set ? searchContext.skills : new Set();
+    const myInterests = searchContext?.interests instanceof Set ? searchContext.interests : new Set();
+    const myRoleSignals = searchContext?.roleSignals instanceof Set ? searchContext.roleSignals : new Set();
+
+    const matchedSkills = [...mySkills].filter((skill) => candidateSkills.has(skill));
+    const matchedInterests = [...myInterests].filter((interest) => candidateInterests.has(interest));
+    const matchedRoleSignals = [...myRoleSignals].filter((signal) => candidateRoleSignals.has(signal));
+
+    const skillScore = mySkills.size > 0 ? matchedSkills.length / mySkills.size : 0;
+    const interestScore = myInterests.size > 0 ? matchedInterests.length / myInterests.size : 0;
+    let roleScore = myRoleSignals.size > 0 ? matchedRoleSignals.length / myRoleSignals.size : 0;
+
+    if (!roleScore && searchContext?.roleText && candidateRoleText && searchContext.roleText === candidateRoleText) {
+        roleScore = 0.8;
+    }
+
+    const availabilityScore = scoreAvailabilityCompatibility(
+        searchContext?.availabilityStatus,
+        candidate?.availabilityStatus
+    );
+
+    const candidateExperienceRank = getExperienceRank(candidate?.experienceLevel);
+    const experienceScore =
+        searchContext?.experienceRank > 0 && candidateExperienceRank > 0
+            ? Math.max(0, 1 - Math.abs(searchContext.experienceRank - candidateExperienceRank) / 3)
+            : 0;
+
+    const networkBoost = isConnected ? 1 : isFollowed ? 0.7 : 0;
+    const blendedScore = Number(
+        (
+            clampToUnit(semanticScore) * 0.54 +
+            clampToUnit(keywordScore) * 0.14 +
+            clampToUnit(skillScore) * 0.14 +
+            clampToUnit(interestScore) * 0.07 +
+            clampToUnit(roleScore) * 0.05 +
+            clampToUnit(availabilityScore) * 0.03 +
+            clampToUnit(experienceScore) * 0.02 +
+            clampToUnit(networkBoost) * 0.01
+        ).toFixed(6)
+    );
+
+    const reasons = [];
+    if (matchedSkills.length > 0) {
+        reasons.push(`Shared skills: ${matchedSkills.slice(0, 3).join(', ')}`);
+    }
+    if (matchedInterests.length > 0) {
+        reasons.push(`Shared interests: ${matchedInterests.slice(0, 3).join(', ')}`);
+    }
+    if (matchedRoleSignals.length > 0) {
+        reasons.push(`Role fit: ${matchedRoleSignals.slice(0, 2).join(', ')}`);
+    } else if (roleScore >= 0.8) {
+        reasons.push('Matching role focus');
+    }
+    if (availabilityScore >= 0.9) {
+        reasons.push('Availability aligns');
+    }
+    if (experienceScore >= 0.85) {
+        reasons.push('Experience level aligns');
+    }
+    if (isConnected) {
+        reasons.push('Already in your network');
+    } else if (isFollowed) {
+        reasons.push('You are following this profile');
+    }
+
+    return {
+        blendedScore,
+        reasons,
+        contextScore: Number(
+            (
+                clampToUnit(skillScore) * 0.4 +
+                clampToUnit(interestScore) * 0.2 +
+                clampToUnit(roleScore) * 0.2 +
+                clampToUnit(availabilityScore) * 0.1 +
+                clampToUnit(experienceScore) * 0.1
+            ).toFixed(6)
+        ),
+        matchedSkills,
+        matchedInterests,
+    };
+}
+
 // @desc    Get user's GitHub repositories
 // @route   GET /api/user/github/repos
 // @access  Private
@@ -406,17 +563,18 @@ router.post('/search-semantic', protect, async (req, res) => {
             (Array.isArray(req.user?.following) ? req.user.following : []).map((id) => String(id))
         );
 
-        let normalizedQuery;
+        let normalizedQueryVector;
         if (queryText) {
             // Generate embedding on the backend
-            normalizedQuery = await generateEmbedding(queryText);
+            normalizedQueryVector = await generateEmbedding(queryText);
         } else if (Array.isArray(providedQueryVector) && providedQueryVector.length === EMBEDDING_DIMENSION) {
             // Support legacy queryVector if provided (optional)
-            normalizedQuery = providedQueryVector.map((value) => Number(value));
+            normalizedQueryVector = providedQueryVector.map((value) => Number(value));
         } else {
             return res.status(400).json({ error: 'Either queryText or a valid queryVector must be provided' });
         }
-
+        const queryTokens = tokenizeSearchText(queryText);
+        const searchContext = buildSemanticSearchContext(req.user || {});
 
         const allCandidates = await User.find({
             _id: { $ne: req.user._id },
@@ -428,51 +586,72 @@ router.post('/search-semantic', protect, async (req, res) => {
             (user) => Array.isArray(user?.embedding) && user.embedding.length === EMBEDDING_DIMENSION
         );
 
-        const rankedUsers = searchLocalVectors(normalizedQuery, indexedCandidates, 10).map((user) => {
-            const { githubId, ...rest } = user;
-            const publicUser = toPublicUserPayload(rest, followingUserIds);
-            return {
-                ...publicUser,
-                githubConnected: Boolean(githubId || user.githubUsername),
-                isConnected: connectedUserIds.has(String(user?._id || user?.id || '')),
-                semanticSource: 'vector',
-            };
-        });
-
-        if (rankedUsers.length >= 10) {
-            return res.status(200).json({
-                results: rankedUsers,
-                meta: {
-                    indexedUsers: indexedCandidates.length,
-                    usedFallback: false,
-                },
-            });
-        }
-
-        const remainingSlots = 10 - rankedUsers.length;
-        const usedIds = new Set(
-            rankedUsers.map((user) => String(user?._id || user?.id || ''))
+        const vectorCandidates = searchLocalVectors(
+            normalizedQueryVector,
+            indexedCandidates,
+            Math.max(20, Math.min(100, indexedCandidates.length || 20))
         );
-        const nonIndexedCandidates = allCandidates.filter(
-            (user) => !Array.isArray(user?.embedding) || user.embedding.length !== EMBEDDING_DIMENSION
+        const vectorScoreByUserId = new Map(
+            vectorCandidates.map((user) => [String(user?._id || user?.id || ''), clampToUnit(user.semanticScore)])
         );
-        const fallbackCandidates = buildKeywordFallbackMatches(queryText, nonIndexedCandidates, remainingSlots)
-            .filter((user) => !usedIds.has(String(user?._id || user?.id || '')))
-            .map((user) => {
-                const { githubId, ...rest } = user;
+
+        const rankedUsers = allCandidates
+            .map((candidateDoc) => {
+                const candidate = typeof candidateDoc?.toObject === 'function'
+                    ? candidateDoc.toObject()
+                    : (candidateDoc || {});
+                const candidateId = String(candidate?._id || candidate?.id || '');
+                const semanticScore = clampToUnit(vectorScoreByUserId.get(candidateId) || 0);
+                const haystack = buildUserSearchDocument(candidate);
+                const keywordHits = queryTokens.length > 0
+                    ? queryTokens.reduce((count, token) => {
+                        return haystack.includes(token) ? count + 1 : count;
+                    }, 0)
+                    : 0;
+                const keywordScore = queryTokens.length > 0 ? keywordHits / queryTokens.length : 0;
+
+                const isConnected = connectedUserIds.has(candidateId);
+                const isFollowedByCurrentUser = followingUserIds.has(candidateId);
+                const scored = scoreTeammateWithContext({
+                    candidate,
+                    searchContext,
+                    semanticScore,
+                    keywordScore,
+                    isConnected,
+                    isFollowed: isFollowedByCurrentUser,
+                });
+
+                const { githubId, ...rest } = candidate;
                 const publicUser = toPublicUserPayload(rest, followingUserIds);
+
                 return {
                     ...publicUser,
-                    githubConnected: Boolean(githubId || user.githubUsername),
-                    isConnected: connectedUserIds.has(String(user?._id || user?.id || '')),
+                    githubConnected: Boolean(githubId || candidate.githubUsername),
+                    isConnected,
+                    semanticScore: scored.blendedScore,
+                    semanticReasons: scored.reasons,
+                    contextScore: scored.contextScore,
+                    vectorScore: semanticScore,
+                    keywordScore: Number(keywordScore.toFixed(6)),
+                    matchedSkills: scored.matchedSkills,
+                    matchedInterests: scored.matchedInterests,
+                    semanticSource: semanticScore > 0 ? 'vector+context' : 'keyword+context',
                 };
-            });
+            })
+            .filter((candidate) => Number(candidate?.semanticScore || 0) > 0.06)
+            .sort((a, b) => {
+                if (b.semanticScore !== a.semanticScore) return b.semanticScore - a.semanticScore;
+                if (Boolean(b.isConnected) !== Boolean(a.isConnected)) return Number(b.isConnected) - Number(a.isConnected);
+                return Number(b.followerCount || 0) - Number(a.followerCount || 0);
+            })
+            .slice(0, 10);
 
         return res.status(200).json({
-            results: [...rankedUsers, ...fallbackCandidates].slice(0, 10),
+            results: rankedUsers,
             meta: {
                 indexedUsers: indexedCandidates.length,
-                usedFallback: fallbackCandidates.length > 0,
+                usedFallback: rankedUsers.some((user) => user.semanticSource === 'keyword+context'),
+                contextAware: true,
             },
         });
     } catch (error) {

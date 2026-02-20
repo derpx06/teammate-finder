@@ -126,12 +126,26 @@ const CreateProject = () => {
             if (!planResponse.ok) {
                 throw new Error(planData.error || 'Failed to generate project blueprint');
             }
+            const suggestedIdeas = Array.isArray(planData.suggestedIdeas) ? planData.suggestedIdeas : [];
+            if (suggestedIdeas.length > 0 && !planData.plan) {
+                return {
+                    plan: null,
+                    teammates: [],
+                    teammateSuggestions: [],
+                    suggestedIdeas,
+                    ecosystemInsights: planData.ecosystemInsights || null,
+                    meta: planData.meta || null,
+                    applied: false,
+                    reason: 'idea_suggestions',
+                };
+            }
             const fallbackPlan = planData.plan || {};
             const applyResult = applyBlueprintToForm(fallbackPlan);
             return {
                 plan: fallbackPlan,
                 teammates: Array.isArray(planData.candidates) ? planData.candidates : [],
                 teammateSuggestions: Array.isArray(planData.teammateSuggestions) ? planData.teammateSuggestions : [],
+                suggestedIdeas: [],
                 ecosystemInsights: planData.ecosystemInsights || null,
                 meta: planData.meta || null,
                 ...applyResult,
@@ -177,6 +191,19 @@ const CreateProject = () => {
         }
 
         const planData = finalPayload || {};
+        const suggestedIdeas = Array.isArray(planData?.suggestedIdeas) ? planData.suggestedIdeas : [];
+        if (suggestedIdeas.length > 0 && !planData?.plan) {
+            return {
+                plan: null,
+                teammates: [],
+                teammateSuggestions: [],
+                suggestedIdeas,
+                ecosystemInsights: planData.ecosystemInsights || null,
+                meta: planData.meta || null,
+                applied: false,
+                reason: 'idea_suggestions',
+            };
+        }
         const plan = planData.plan || {};
         const applyResult = applyBlueprintToForm(plan);
         const teammates = Array.isArray(planData.candidates) ? planData.candidates : [];
@@ -190,6 +217,7 @@ const CreateProject = () => {
             plan,
             teammates,
             teammateSuggestions,
+            suggestedIdeas: [],
             ecosystemInsights,
             meta,
             ...applyResult,

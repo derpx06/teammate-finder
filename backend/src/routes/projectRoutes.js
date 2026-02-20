@@ -15,6 +15,39 @@ const VIRTUAL_CTO_CACHE_TTL_MS = Number(process.env.VIRTUAL_CTO_CACHE_TTL_MS) > 
   : 5 * 60 * 1000;
 const VIRTUAL_CTO_CACHE_MAX_ITEMS = 200;
 const virtualCtoPackageCache = new Map();
+const VIRTUAL_CTO_IDEA_CATEGORIES = ['saas', 'mobile', 'ai', 'web3', 'ecommerce', 'other'];
+const VIRTUAL_CTO_IDEA_PROMPTS = {
+  saas: [
+    'Build a SaaS platform that helps college teams manage hackathon tasks, deadlines, and ownership with live progress tracking.',
+    'Create a startup CRM for early-stage founders to track leads, investor conversations, and follow-ups in one dashboard.',
+    'Develop a team workspace that auto-generates sprint plans, PRD summaries, and milestone reports for product teams.',
+  ],
+  mobile: [
+    'Build a mobile app that matches nearby learners for accountability sessions and shared study goals.',
+    'Create a React Native app for local event discovery with group chats, RSVP management, and reminder notifications.',
+    'Develop a mobile habit-coaching app with streak analytics, social accountability circles, and challenge mode.',
+  ],
+  ai: [
+    'Build an AI copilot that reviews project descriptions and improves clarity, scope, and execution milestones.',
+    'Create an AI interview simulator where users practice role-based questions and get personalized feedback.',
+    'Develop an AI teammate recommendation engine that explains why each candidate is a fit for a project role.',
+  ],
+  web3: [
+    'Build a Web3 contributor dashboard to track DAO tasks, bounties, and wallet-based contribution proofs.',
+    'Create a blockchain-based credential verifier for hackathon submissions and project ownership validation.',
+    'Develop a smart-contract-powered escrow platform for freelance milestone payments with dispute workflows.',
+  ],
+  ecommerce: [
+    'Build an e-commerce analytics console for small brands with conversion funnels, retention cohorts, and campaign ROI.',
+    'Create a social commerce app where creators launch limited drops and buyers receive live stock alerts.',
+    'Develop an AI-assisted catalog optimizer that improves product titles, tags, and SEO descriptions for stores.',
+  ],
+  other: [
+    'Build a project collaboration platform where creators can post ideas, recruit teammates, and track roadmap execution.',
+    'Create a campus innovation network for students to find co-builders, mentors, and hackathon-ready project ideas.',
+    'Develop a portfolio operating system that turns work history into impact stories, proof links, and recruiter-ready pages.',
+  ],
+};
 
 function normalizeProjectType(status) {
   if (status === 'Completed') return 'completed';
@@ -904,6 +937,203 @@ function buildUserContext(user = {}) {
   };
 }
 
+function hashVirtualCtoTextSeed(value = '') {
+  return String(value || '').split('').reduce((acc, char) => ((acc * 31) + char.charCodeAt(0)) >>> 0, 0);
+}
+
+function normalizeVirtualCtoCategory(value = '') {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized.includes('mobile')) return 'mobile';
+  if (normalized.includes('web3') || normalized.includes('blockchain') || normalized.includes('crypto')) return 'web3';
+  if (normalized.includes('ai') || normalized.includes('ml') || normalized.includes('machine')) return 'ai';
+  if (normalized.includes('ecommerce') || normalized.includes('e-commerce') || normalized.includes('market')) return 'ecommerce';
+  if (normalized.includes('saas') || normalized.includes('dashboard') || normalized.includes('platform')) return 'saas';
+  return 'other';
+}
+
+function isVirtualCtoIdeaSuggestionRequest(rawIdea = '') {
+  const normalized = String(rawIdea || '').trim().toLowerCase();
+  if (!normalized) return false;
+  if (/^(build|create|make)\b/.test(normalized) && normalized.length >= 20) return false;
+
+  const explicitPatterns = [
+    /\bsuggest\b.*\b(projec|project|idea)/i,
+    /\brecommend\b.*\b(projec|project|idea)/i,
+    /\bgive me\b.*\b(projec|project|idea)/i,
+    /\bproject ideas?\b/i,
+    /\bideas? for hackathon\b/i,
+    /\bwhat should i build\b/i,
+    /\bany\b.*\bproject\b/i,
+    /\bneed\b.*\bproject\b/i,
+  ];
+  if (explicitPatterns.some((pattern) => pattern.test(normalized))) return true;
+
+  const queryTokens = tokenizeText(normalized);
+  const hasGenericIntent =
+    normalized.includes('project') ||
+    normalized.includes('projec') ||
+    normalized.includes('idea');
+  const hasSpecificDomain = /(dashboard|marketplace|chat|social|mobile|saas|web3|ai|ml|ecommerce|fintech|edtech|health|crm|booking|analytics|automation|portfolio|app|tool|website|system)/i.test(normalized);
+
+  return hasGenericIntent && !hasSpecificDomain && queryTokens.length <= 8;
+}
+
+function buildVirtualCtoAgentDirective(rawIdea = '') {
+  const normalized = String(rawIdea || '').trim().toLowerCase();
+  const tokenCount = tokenizeText(normalized).length;
+  const suggestionIntent = isVirtualCtoIdeaSuggestionRequest(rawIdea);
+
+  if (suggestionIntent) {
+    return {
+      mode: 'suggest_projects',
+      modeLabel: 'Project Suggestions',
+      reason: 'Prompt asks for ideas or is too broad for direct blueprint execution.',
+      nextAction: 'Return multiple project ideas tailored to the user profile and ecosystem.',
+      confidence: 0.92,
+    };
+  }
+
+  if (normalized.length >= 12 && tokenCount >= 3) {
+    return {
+      mode: 'build_blueprint',
+      modeLabel: 'Blueprint Generation',
+      reason: 'Prompt contains enough implementation context to build a full plan.',
+      nextAction: 'Generate project blueprint with stack, roadmap, roles, and teammate suggestions.',
+      confidence: 0.88,
+    };
+  }
+
+  return {
+    mode: 'suggest_projects',
+    modeLabel: 'Project Suggestions',
+    reason: 'Prompt is short/ambiguous. Starting with ideas is the safest first step.',
+    nextAction: 'Return curated project ideas; user can pick one for full blueprint generation.',
+    confidence: 0.72,
+  };
+}
+
+function inferVirtualCtoPreferredCategories(user = {}, ecosystemInsights = null) {
+  const scores = new Map(VIRTUAL_CTO_IDEA_CATEGORIES.map((category) => [category, 0]));
+  const userText = [
+    user?.role,
+    user?.bio,
+    ...(Array.isArray(user?.skills) ? user.skills : []),
+    ...(Array.isArray(user?.interests) ? user.interests : []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  const keywordMap = {
+    mobile: ['mobile', 'android', 'ios', 'react native', 'flutter'],
+    web3: ['web3', 'blockchain', 'crypto', 'solidity', 'defi'],
+    ai: ['ai', 'ml', 'machine learning', 'llm', 'data science', 'prompt'],
+    ecommerce: ['ecommerce', 'e-commerce', 'shop', 'store', 'checkout', 'payments'],
+    saas: ['saas', 'dashboard', 'b2b', 'platform', 'analytics', 'crm'],
+  };
+
+  Object.entries(keywordMap).forEach(([category, keywords]) => {
+    const hits = keywords.reduce((count, keyword) => (
+      userText.includes(keyword) ? count + 1 : count
+    ), 0);
+    if (hits > 0) {
+      scores.set(category, (scores.get(category) || 0) + hits * 1.6);
+    }
+  });
+
+  const communityCategories = Array.isArray(ecosystemInsights?.topProjectCategories)
+    ? ecosystemInsights.topProjectCategories
+    : [];
+  communityCategories.slice(0, 5).forEach((item) => {
+    const category = normalizeVirtualCtoCategory(item?.category || '');
+    const projects = Number(item?.projects) || 0;
+    const communityWeight = Math.min(2.4, Math.max(0.6, projects / 4));
+    scores.set(category, (scores.get(category) || 0) + communityWeight);
+  });
+
+  const rankedCategories = [...scores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([category]) => category);
+
+  return uniqueCaseInsensitive([...rankedCategories, ...VIRTUAL_CTO_IDEA_CATEGORIES]).slice(0, 5);
+}
+
+function buildVirtualCtoIdeaAlignmentReason(plan = {}, user = {}) {
+  const userSkillSet = new Set(
+    (Array.isArray(user?.skills) ? user.skills : [])
+      .map((skill) => String(skill || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+  const userInterestSet = new Set(
+    (Array.isArray(user?.interests) ? user.interests : [])
+      .map((interest) => String(interest || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+  const requiredSkills = (Array.isArray(plan?.requiredSkills) ? plan.requiredSkills : [])
+    .map((skill) => String(skill || '').trim().toLowerCase())
+    .filter(Boolean);
+  const matchedSkills = requiredSkills.filter((skill) => userSkillSet.has(skill));
+
+  if (matchedSkills.length > 0) {
+    return `Fits your skills: ${matchedSkills.slice(0, 3).join(', ')}`;
+  }
+
+  const planText = [
+    plan?.title,
+    plan?.summary,
+    plan?.description,
+    plan?.categoryLabel,
+  ]
+    .join(' ')
+    .toLowerCase();
+  const matchedInterests = [...userInterestSet].filter((interest) => planText.includes(interest));
+  if (matchedInterests.length > 0) {
+    return `Aligned with your interests: ${matchedInterests.slice(0, 3).join(', ')}`;
+  }
+
+  const userRole = String(user?.role || '').trim();
+  if (userRole) {
+    return `Good fit for your role focus: ${userRole}`;
+  }
+
+  return 'Balanced scope for a strong hackathon demo and clear execution.';
+}
+
+function buildVirtualCtoIdeaSuggestions({ rawIdea, user, ecosystemInsights, limit = 6 }) {
+  const preferredCategories = inferVirtualCtoPreferredCategories(user, ecosystemInsights);
+  const fallbackCategories = VIRTUAL_CTO_IDEA_CATEGORIES;
+  const categoryQueue = uniqueCaseInsensitive([...preferredCategories, ...fallbackCategories]);
+  const seed = hashVirtualCtoTextSeed(rawIdea || user?._id || Date.now());
+
+  const promptPool = [];
+  categoryQueue.forEach((category, categoryIndex) => {
+    const prompts = Array.isArray(VIRTUAL_CTO_IDEA_PROMPTS[category]) ? VIRTUAL_CTO_IDEA_PROMPTS[category] : [];
+    if (prompts.length === 0) return;
+
+    const offset = (seed + categoryIndex) % prompts.length;
+    for (let index = 0; index < prompts.length; index += 1) {
+      promptPool.push(prompts[(index + offset) % prompts.length]);
+    }
+  });
+
+  const uniquePrompts = uniqueCaseInsensitive(promptPool).slice(0, Math.max(3, Number(limit) || 6));
+  return uniquePrompts.map((ideaPrompt, index) => {
+    const plan = generateVirtualCtoPlan(ideaPrompt);
+    return {
+      id: `idea_${index + 1}`,
+      prompt: ideaPrompt,
+      title: plan?.title || `Project Idea ${index + 1}`,
+      summary: plan?.summary || String(plan?.description || '').slice(0, 220),
+      category: plan?.category || 'other',
+      categoryLabel: plan?.categoryLabel || 'General Product',
+      techStack: Array.isArray(plan?.techStack) ? plan.techStack.slice(0, 6) : [],
+      roles: (Array.isArray(plan?.roles) ? plan.roles : []).slice(0, 3).map((role) => role?.title).filter(Boolean),
+      estimatedWeeks: Number(plan?.estimatedWeeks) || null,
+      commitment: plan?.commitment || '',
+      alignmentReason: buildVirtualCtoIdeaAlignmentReason(plan, user),
+    };
+  });
+}
+
 async function buildVirtualCtoPackage({ rawIdea, user }) {
   const startedAt = Date.now();
   const cacheKey = buildVirtualCtoCacheKey(user?._id, rawIdea);
@@ -1400,6 +1630,202 @@ function toBazaarFeedItems(projects, query = {}, options = {}) {
     .sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
 }
 
+function buildProjectAgentCorpus(item = {}) {
+  return [
+    item?.projectTitle,
+    item?.projectDescription,
+    item?.projectCategory,
+    item?.projectCommitment,
+    item?.roleTitle,
+    item?.owner?.name,
+    ...(Array.isArray(item?.skills) ? item.skills : []),
+  ]
+    .map((value) => String(value || '').toLowerCase())
+    .join(' ');
+}
+
+function normalizeLevel(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function mapExperienceLevel(value) {
+  const normalized = normalizeLevel(value);
+  if (normalized === 'expert') return 4;
+  if (normalized === 'senior') return 3;
+  if (normalized === 'mid-level' || normalized === 'mid level' || normalized === 'mid') return 2;
+  if (normalized === 'junior') return 1;
+  return 0;
+}
+
+function inferRequiredExperienceLevel(item = {}) {
+  const roleText = `${item?.roleTitle || ''} ${item?.projectDescription || ''}`.toLowerCase();
+  if (/\bexpert\b/.test(roleText)) return 4;
+  if (/\bsenior\b/.test(roleText)) return 3;
+  if (/\bmid[- ]?level\b|\bintermediate\b/.test(roleText)) return 2;
+  if (/\bjunior\b/.test(roleText)) return 1;
+  return 0;
+}
+
+function scoreProjectCommitmentFit(projectCommitment, userAvailabilityStatus) {
+  const commitment = normalizeLevel(projectCommitment);
+  const availability = normalizeLevel(userAvailabilityStatus);
+  if (!availability || !commitment) return 0.45;
+
+  if (commitment.includes('full') || commitment.includes('40h')) {
+    if (availability === 'full-time') return 1;
+    if (availability === 'part-time') return 0.45;
+    if (availability === 'weekends') return 0.2;
+    return 0.35;
+  }
+
+  if (commitment.includes('part')) {
+    if (availability === 'part-time' || availability === 'full-time') return 1;
+    if (availability === 'weekends') return 0.6;
+    return 0.7;
+  }
+
+  if (commitment.includes('weekend')) {
+    if (availability === 'weekends' || availability === 'full-time') return 1;
+    if (availability === 'part-time') return 0.6;
+    return 0.65;
+  }
+
+  return 0.6;
+}
+
+function scoreProjectRoleAlignment(roleText = '', userRole = '') {
+  const normalizedRole = normalizeLevel(userRole);
+  if (!normalizedRole) return { score: 0, matchedRoleTerms: [] };
+
+  const roleCorpus = String(roleText || '').toLowerCase();
+  const roleTokens = tokenizeText(normalizedRole).filter((token) => token.length > 2);
+  if (roleTokens.length === 0) return { score: 0, matchedRoleTerms: [] };
+
+  const matchedRoleTerms = roleTokens.filter((token) => roleCorpus.includes(token));
+  const score = matchedRoleTerms.length / roleTokens.length;
+  return {
+    score: Number(score.toFixed(6)),
+    matchedRoleTerms,
+  };
+}
+
+function scoreProjectInterestAlignment(item = {}, userInterestSet = new Set()) {
+  if (!(userInterestSet instanceof Set) || userInterestSet.size === 0) {
+    return { score: 0, matchedInterests: [] };
+  }
+
+  const corpus = buildProjectAgentCorpus(item);
+  const matchedInterests = [...userInterestSet].filter((interest) => corpus.includes(interest));
+  const score = matchedInterests.length / userInterestSet.size;
+  return {
+    score: Number(score.toFixed(6)),
+    matchedInterests,
+  };
+}
+
+function scoreProjectAgentItem(item = {}, queryText = '', queryTokens = [], userContext = {}) {
+  const userSkillSet = userContext?.skillSet instanceof Set ? userContext.skillSet : new Set();
+  const userInterestSet = userContext?.interestSet instanceof Set ? userContext.interestSet : new Set();
+  const userConnectionIds = userContext?.connectionIds instanceof Set ? userContext.connectionIds : new Set();
+  const userFollowingIds = userContext?.followingIds instanceof Set ? userContext.followingIds : new Set();
+  const corpus = buildProjectAgentCorpus(item);
+  if (!corpus) return { score: 0, reasons: [] };
+
+  const normalizedQuery = String(queryText || '').trim().toLowerCase();
+  const matchedTerms = queryTokens.filter((token) => corpus.includes(token));
+  const termCoverage = queryTokens.length > 0 ? matchedTerms.length / queryTokens.length : 0;
+  const phraseBoost = normalizedQuery && corpus.includes(normalizedQuery) ? 1 : 0;
+
+  const roleSkills = (Array.isArray(item?.skills) ? item.skills : [])
+    .map((skill) => String(skill || '').trim().toLowerCase())
+    .filter(Boolean);
+  const uniqueRoleSkills = [...new Set(roleSkills)];
+  const matchedSkills = uniqueRoleSkills.filter((skill) => userSkillSet.has(skill));
+  const skillAlignment = uniqueRoleSkills.length > 0 ? matchedSkills.length / uniqueRoleSkills.length : 0;
+  const roleAlignmentResult = scoreProjectRoleAlignment(
+    `${item?.roleTitle || ''} ${item?.projectTitle || ''} ${item?.projectDescription || ''}`,
+    userContext?.role || ''
+  );
+  const interestAlignmentResult = scoreProjectInterestAlignment(item, userInterestSet);
+  const commitmentFit = scoreProjectCommitmentFit(
+    item?.projectCommitment || '',
+    userContext?.availabilityStatus || ''
+  );
+
+  const requiredExperience = inferRequiredExperienceLevel(item);
+  const userExperience = mapExperienceLevel(userContext?.experienceLevel || '');
+  const experienceAlignment =
+    requiredExperience <= 0 || userExperience <= 0
+      ? 0.55
+      : Math.max(0, 1 - Math.abs(requiredExperience - userExperience) / 3);
+
+  const postedAtMs = new Date(item?.postedAt || Date.now()).getTime();
+  const ageDays = Number.isFinite(postedAtMs)
+    ? Math.max(0, (Date.now() - postedAtMs) / (1000 * 60 * 60 * 24))
+    : 999;
+  const freshness = Math.max(0, 1 - ageDays / 30);
+  const spots = Number(item?.spots) || 0;
+  const availabilityBoost = Math.min(1, spots / 4);
+  const ownerId = String(item?.owner?.id || '').trim();
+  const networkBoost =
+    ownerId && (userConnectionIds.has(ownerId) || userFollowingIds.has(ownerId)) ? 1 : 0;
+
+  const score = Number(
+    (
+      termCoverage * 0.34 +
+      phraseBoost * 0.12 +
+      skillAlignment * 0.2 +
+      roleAlignmentResult.score * 0.1 +
+      interestAlignmentResult.score * 0.08 +
+      commitmentFit * 0.06 +
+      experienceAlignment * 0.05 +
+      freshness * 0.03 +
+      availabilityBoost * 0.01 +
+      networkBoost * 0.01
+    ).toFixed(6)
+  );
+
+  const reasons = [];
+  if (matchedTerms.length > 0) {
+    reasons.push(`Matched terms: ${matchedTerms.slice(0, 4).join(', ')}`);
+  }
+  if (matchedSkills.length > 0) {
+    reasons.push(`Skill overlap: ${matchedSkills.slice(0, 4).join(', ')}`);
+  }
+  if (roleAlignmentResult.matchedRoleTerms.length > 0) {
+    reasons.push(`Role fit: ${roleAlignmentResult.matchedRoleTerms.slice(0, 3).join(', ')}`);
+  }
+  if (interestAlignmentResult.matchedInterests.length > 0) {
+    reasons.push(
+      `Interest fit: ${interestAlignmentResult.matchedInterests.slice(0, 3).join(', ')}`
+    );
+  }
+  if (commitmentFit >= 0.9) {
+    reasons.push('Commitment matches your availability');
+  }
+  if (experienceAlignment >= 0.8) {
+    reasons.push('Experience level aligns well');
+  }
+  if (networkBoost > 0) {
+    reasons.push('Owner is in your network');
+  }
+  if (freshness > 0.65) {
+    reasons.push('Recently active project');
+  }
+  if (spots > 1) {
+    reasons.push(`${spots} open spots`);
+  }
+
+  return {
+    score,
+    reasons,
+    matchedTerms,
+    matchedSkills,
+    matchedInterests: interestAlignmentResult.matchedInterests,
+    matchedRoleTerms: roleAlignmentResult.matchedRoleTerms,
+  };
+}
+
 async function notifyConnectionsAboutNewProject({ ownerId, ownerName, project }) {
   const owner = await User.findById(ownerId).select('connections');
   const rawConnections = Array.isArray(owner?.connections) ? owner.connections : [];
@@ -1517,6 +1943,32 @@ router.post('/virtual-cto/plan', protect, async (req, res) => {
       return res.status(400).json({ error: 'idea is required' });
     }
 
+    const agentDirective = buildVirtualCtoAgentDirective(rawIdea);
+
+    if (agentDirective.mode === 'suggest_projects') {
+      const startedAt = Date.now();
+      const ecosystemInsights = await buildEcosystemInsights(req.user?._id);
+      const suggestedIdeas = buildVirtualCtoIdeaSuggestions({
+        rawIdea,
+        user: req.user,
+        ecosystemInsights,
+        limit: 6,
+      });
+
+      return res.status(200).json({
+        suggestedIdeas,
+        ecosystemInsights,
+        agentDirective,
+        meta: {
+          generationMode: 'idea_suggestions',
+          suggestionIntent: true,
+          suggestedIdeasCount: suggestedIdeas.length,
+          agentDirective,
+          generatedInMs: Date.now() - startedAt,
+        },
+      });
+    }
+
     if (rawIdea.length < 12) {
       return res.status(400).json({
         error: 'Please provide a bit more detail so the Virtual CTO can generate a useful plan',
@@ -1527,6 +1979,12 @@ router.post('/virtual-cto/plan', protect, async (req, res) => {
       rawIdea,
       user: req.user,
     });
+
+    payload.agentDirective = agentDirective;
+    payload.meta = {
+      ...(payload.meta || {}),
+      agentDirective,
+    };
 
     return res.status(200).json(payload);
   } catch (error) {
@@ -1543,7 +2001,10 @@ router.post('/virtual-cto/stream', protect, async (req, res) => {
   if (!rawIdea) {
     return res.status(400).json({ error: 'idea is required' });
   }
-  if (rawIdea.length < 12) {
+
+  const agentDirective = buildVirtualCtoAgentDirective(rawIdea);
+  const suggestionIntent = agentDirective.mode === 'suggest_projects';
+  if (!suggestionIntent && rawIdea.length < 12) {
     return res.status(400).json({
       error: 'Please provide a bit more detail so the Virtual CTO can generate a useful plan',
     });
@@ -1558,12 +2019,58 @@ router.post('/virtual-cto/stream', protect, async (req, res) => {
   }
 
   try {
+    if (suggestionIntent) {
+      const startedAt = Date.now();
+      writeStreamChunk(res, {
+        type: 'status',
+        message: `Agent mode: ${agentDirective.modeLabel}. ${agentDirective.nextAction}`,
+      });
+      writeStreamChunk(res, { type: 'status', message: 'Gathering personalized project ideas...' });
+      const ecosystemInsights = await buildEcosystemInsights(req.user?._id);
+      const suggestedIdeas = buildVirtualCtoIdeaSuggestions({
+        rawIdea,
+        user: req.user,
+        ecosystemInsights,
+        limit: 6,
+      });
+      const payload = {
+        suggestedIdeas,
+        ecosystemInsights,
+        agentDirective,
+        meta: {
+          generationMode: 'idea_suggestions',
+          suggestionIntent: true,
+          suggestedIdeasCount: suggestedIdeas.length,
+          agentDirective,
+          generatedInMs: Date.now() - startedAt,
+        },
+      };
+
+      writeStreamChunk(res, { type: 'insights', data: ecosystemInsights || null });
+      writeStreamChunk(res, { type: 'idea_suggestions', data: suggestedIdeas });
+      writeStreamChunk(res, {
+        type: 'status',
+        message: `Found ${suggestedIdeas.length} project ideas for you. Pick one to generate a full blueprint.`,
+      });
+      writeStreamChunk(res, { type: 'done', data: payload });
+      return res.end();
+    }
+
+    writeStreamChunk(res, {
+      type: 'status',
+      message: `Agent mode: ${agentDirective.modeLabel}. ${agentDirective.nextAction}`,
+    });
     writeStreamChunk(res, { type: 'status', message: 'Analyzing project idea...' });
     writeStreamChunk(res, { type: 'status', message: 'Building architecture and roadmap...' });
     const payload = await buildVirtualCtoPackage({
       rawIdea,
       user: req.user,
     });
+    payload.agentDirective = agentDirective;
+    payload.meta = {
+      ...(payload.meta || {}),
+      agentDirective,
+    };
     writeStreamChunk(res, { type: 'insights', data: payload.ecosystemInsights || null });
     writeStreamChunk(res, { type: 'plan', data: payload.plan || null });
     writeStreamChunk(res, { type: 'candidates', data: payload.candidates || [] });
@@ -1763,6 +2270,106 @@ router.get('/bazaar', protect, async (req, res) => {
     });
   } catch (error) {
     console.error('Fetch project bazaar error:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// @desc    Agent search for project-role matches using query + user profile context
+// @route   POST /api/project/agent-search
+// @access  Private
+router.post('/agent-search', protect, async (req, res) => {
+  try {
+    const queryText = String(req.body?.queryText || '').trim();
+    if (queryText.length < 3) {
+      return res.status(400).json({ error: 'queryText must be at least 3 characters' });
+    }
+
+    const [projects, pendingApplications] = await Promise.all([
+      Project.find({
+        status: { $ne: 'Completed' },
+      }).populate('owner', 'name email'),
+      Notification.find({
+        sender: req.user._id,
+        type: 'project_application',
+        status: 'pending',
+        project: { $ne: null },
+      }).select('project'),
+    ]);
+
+    const pendingApplicationProjectIds = new Set(
+      (Array.isArray(pendingApplications) ? pendingApplications : [])
+        .map((notification) => String(notification?.project || '').trim())
+        .filter(Boolean)
+    );
+
+    const baseItems = toBazaarFeedItems(projects, {}, {
+      currentUserId: req.user._id,
+      pendingApplicationProjectIds,
+    });
+
+    const queryTokens = tokenizeText(queryText);
+    const userSkillSet = new Set(
+      (Array.isArray(req.user?.skills) ? req.user.skills : [])
+        .map((skill) => String(skill || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+    const userInterestSet = new Set(
+      (Array.isArray(req.user?.interests) ? req.user.interests : [])
+        .map((interest) => String(interest || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+    const userConnectionIds = new Set(
+      (Array.isArray(req.user?.connections) ? req.user.connections : [])
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    );
+    const userFollowingIds = new Set(
+      (Array.isArray(req.user?.following) ? req.user.following : [])
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    );
+
+    const userContext = {
+      role: req.user?.role || '',
+      availabilityStatus: req.user?.availabilityStatus || '',
+      experienceLevel: req.user?.experienceLevel || '',
+      skillSet: userSkillSet,
+      interestSet: userInterestSet,
+      connectionIds: userConnectionIds,
+      followingIds: userFollowingIds,
+    };
+
+    const ranked = baseItems
+      .map((item) => {
+        const scored = scoreProjectAgentItem(item, queryText, queryTokens, userContext);
+        return {
+          ...item,
+          agentScore: scored.score,
+          agentReasons: scored.reasons,
+          matchedTerms: scored.matchedTerms,
+          matchedSkills: scored.matchedSkills,
+          matchedInterests: scored.matchedInterests,
+          matchedRoleTerms: scored.matchedRoleTerms,
+        };
+      })
+      .filter((item) => item.canApply && item.agentScore > 0)
+      .sort((a, b) => {
+        if (b.agentScore !== a.agentScore) return b.agentScore - a.agentScore;
+        return new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime();
+      })
+      .slice(0, 12);
+
+    return res.status(200).json({
+      results: ranked,
+      meta: {
+        queryText,
+        totalCandidates: baseItems.length,
+        returned: ranked.length,
+        contextAware: true,
+      },
+    });
+  } catch (error) {
+    console.error('Agent project search error:', error);
     return res.status(500).json({ error: 'Server error' });
   }
 });

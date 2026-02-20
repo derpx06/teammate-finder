@@ -15,6 +15,7 @@ const fallbackAvatar = 'https://icon-library.com/images/anonymous-avatar-icon/an
 const TeammateCard = ({
     user,
     onViewDetails,
+    onCardClick,
     onConnect,
     onToggleFollow,
     isConnecting = false,
@@ -30,16 +31,29 @@ const TeammateCard = ({
         typeof user.semanticScore === 'number'
             ? `${Math.round(user.semanticScore * 100)}% Match`
             : null;
+    const semanticReasons = Array.isArray(user.semanticReasons)
+        ? user.semanticReasons.filter(Boolean).slice(0, 2)
+        : [];
     const followerCount = Number(user.followerCount || user.starCount || 0);
 
     return (
         <div
             role="button"
             tabIndex={0}
-            onClick={() => onViewDetails?.(user)}
+            onClick={() => {
+                if (typeof onCardClick === 'function') {
+                    onCardClick(user);
+                    return;
+                }
+                onViewDetails?.(user);
+            }}
             onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
+                    if (typeof onCardClick === 'function') {
+                        onCardClick(user);
+                        return;
+                    }
                     onViewDetails?.(user);
                 }
             }}
@@ -89,6 +103,18 @@ const TeammateCard = ({
                 <p className="mb-4 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-slate-600">
                     {user.bio || 'Ready to collaborate on meaningful projects.'}
                 </p>
+                {semanticReasons.length > 0 ? (
+                    <div className="mb-4 flex flex-wrap gap-1.5">
+                        {semanticReasons.map((reason, index) => (
+                            <span
+                                key={`${reason}-${index}`}
+                                className="rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+                            >
+                                {reason}
+                            </span>
+                        ))}
+                    </div>
+                ) : null}
 
                 <div className="mb-4 grid grid-cols-2 gap-2 text-xs text-slate-600">
                     <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5">

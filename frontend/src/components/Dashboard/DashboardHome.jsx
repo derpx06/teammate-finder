@@ -13,7 +13,6 @@ import {
     Plus,
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
-import TeammateDetailsModal from '../FindTeammates/TeammateDetailsModal';
 
 const getInitials = (value) => {
     const text = String(value || '').trim();
@@ -41,7 +40,6 @@ const DashboardHome = () => {
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [selectedTeammate, setSelectedTeammate] = useState(null);
 
     const fetchDashboard = async () => {
         setLoading(true);
@@ -360,15 +358,11 @@ const DashboardHome = () => {
                                             initial={{ opacity: 0, y: 12 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: 0.12 + index * 0.07 }}
-                                            onClick={() =>
-                                                setSelectedTeammate({
-                                                    _id: match.id || match._id,
-                                                    id: match.id || match._id,
-                                                    name: match.name,
-                                                    role: match.role,
-                                                    skills: skillList,
-                                                })
-                                            }
+                                            onClick={() => {
+                                                const teammateId = String(match.id || match._id || '').trim();
+                                                if (!teammateId) return;
+                                                navigate(`/user/${teammateId}`);
+                                            }}
                                             className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition hover:border-cyan-300 hover:shadow-sm"
                                         >
                                             <div className="mb-2 flex items-start justify-between gap-3">
@@ -415,7 +409,6 @@ const DashboardHome = () => {
                 </aside>
             </section>
 
-            <TeammateDetailsModal user={selectedTeammate} onClose={() => setSelectedTeammate(null)} />
         </div>
     );
 };
