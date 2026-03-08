@@ -1,6 +1,13 @@
 # DevCraft-BroCoders
 
 Collaborative developer platform to create projects, recruit teammates, run AI-assisted project planning, and collaborate in real-time.
+<img width="2560" height="1466" alt="image" src="https://github.com/user-attachments/assets/bd29cb55-7511-4be7-91d8-8be8bb3d2a7a" />
+<img width="2560" height="1466" alt="image" src="https://github.com/user-attachments/assets/73e9b3ed-4634-4737-9401-9c380bd54edf" />
+<img width="2560" height="1460" alt="image" src="https://github.com/user-attachments/assets/09c35e5a-e2a0-4558-8fe6-cc82fc409826" />
+<img width="2560" height="1460" alt="image" src="https://github.com/user-attachments/assets/49d3a93c-a924-482d-85e6-cdb8af946a1b" />
+<img width="2560" height="1460" alt="image" src="https://github.com/user-attachments/assets/55aa36d3-238d-41bf-a862-ddc995c5fcb4" />
+<img width="2560" height="1460" alt="image" src="https://github.com/user-attachments/assets/283dec38-e86f-4e52-a029-28514c00a985" />
+<img width="2560" height="1460" alt="image" src="https://github.com/user-attachments/assets/f0d6fe30-98e5-487b-b340-97246f906749" />
 
 ## Core Features
 - Auth: Email/password + Google/GitHub OAuth
