@@ -3,6 +3,8 @@
 Collaborative developer platform to create projects, recruit teammates, run AI-assisted project planning, and collaborate in real-time.
 
 
+
+
 ## Core Features
 - Auth: Email/password + Google/GitHub OAuth
 - Onboarding + profile: skills, interests, availability, GitHub enrichment
