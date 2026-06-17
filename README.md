@@ -2,6 +2,7 @@
 
 Collaborative developer platform to create projects, recruit teammates, run AI-assisted project planning, and collaborate in real-time.
 
+
 ## Core Features
 - Auth: Email/password + Google/GitHub OAuth
 - Onboarding + profile: skills, interests, availability, GitHub enrichment
@@ -186,6 +187,9 @@ npm run dev
 - Rotate any API key that was exposed accidentally.
 - Update OAuth callback URLs when deploying (currently local defaults).
 - Do not commit `.env` secrets.
+
+
+
 
 
 <img width="1919" height="909" alt="Screenshot 2026-02-19 173343" src="https://github.com/user-attachments/assets/c53c97ca-c7aa-49a4-8f93-43ad09051a37" />
